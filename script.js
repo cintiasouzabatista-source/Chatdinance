@@ -222,7 +222,7 @@ function addMensagem(texto, tipo = 'system', info = '', autoLimpar = true, id = 
     div.innerHTML = `
         <div class="msg-bubble">
             <p>${texto}</p>
-            ${info? `<div class="msg-info">${info}</div>` : ''}
+           ${info ? `<span class="msg-badge">${info}</span>` : ''}
             <div class="msg-time">${hora}</div>
         </div>
     `;
