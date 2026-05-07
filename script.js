@@ -233,7 +233,7 @@ function addMensagem(texto, tipo = 'system', info = '', autoLimpar = true, id = 
     }
 }
 
-ffunction processarMensagem() {
+function processarMensagem() {
     const input = document.getElementById("user-input");
 
     if (!input) {
@@ -943,6 +943,7 @@ input.addEventListener('keydown', function(e) {
     if (e.key === 'Enter') {
         e.preventDefault();
         processarMensagem();
+        const texto = textoOriginal.toLowerCase();
     }
 });
         console.log('Input OK');
