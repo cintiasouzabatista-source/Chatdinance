@@ -1,6 +1,6 @@
 {
   "name": "BankDay",
-  "short_name": "BankDay",
+  "short_name": "Financas",
   "description": "Controle financeiro inteligente",
   "start_url": "./",
   "display": "standalone",
