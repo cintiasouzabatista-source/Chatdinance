@@ -625,36 +625,37 @@ function desenharGrafico() {
                 }]
             },
             options: {
+                
                 indexAxis: 'y',
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
                     legend: { display: false },
-                    tooltip: {
-                        callbacks: {
-                            label: (ctx) => {
-                                const pct = ((ctx.raw / total) * 100).toFixed(1);
-                                return `R$ ${ctx.raw.toFixed(2).replace('.', ',')} - ${pct}%`;
-                            }
-                        }
-                    }
-                },
-                scales: {
-                    x: {
-                        ticks: {
-                            color: corTexto,
-                            callback: (v) => `R$ ${v}`
-                        },
-                        grid: { color: corGrid }
-                    },
-                    y: {
-                        ticks: { color: corTexto },
-                        grid: { display: false }
-                    }
-                }
-            }
-        });
+                    animation: {
+    duration: 1200,
+    easing: 'easeOutQuart'
+},
+               tooltip: {
+    backgroundColor: '#0f172a',
+    titleColor: '#fff',
+    bodyColor: '#cbd5e1',
+    borderColor: '#334155',
+    borderWidth: 1,
+    padding: 14,
+    displayColors: false,
+    cornerRadius: 12,
 
+    callbacks: {
+        label: (ctx) => {
+            const pct = ((ctx.raw / total) * 100).toFixed(1);
+
+            return [
+                `Valor: R$ ${ctx.raw.toFixed(2).replace('.', ',')}`,
+                `Participação: ${pct}%`
+            ];
+        }
+    }
+}
         if (elLegenda) elLegenda.innerHTML = dadosGraf.map(([cat, val]) => {
             const pct = ((val / total) * 100).toFixed(1);
             return `
@@ -687,27 +688,32 @@ function desenharGrafico() {
             data: {
                 labels: ['Entradas', 'Saídas', 'Cartões'],
                 datasets: [{
-                    data: [entrada, saida, cartao],
-                    backgroundColor: ['#10b981', '#f97316', '#ef4444'],
-                    borderWidth: 0
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false },
-                    tooltip: {
-                        callbacks: {
-                            label: (ctx) => {
-                                const pct = ((ctx.raw / total) * 100).toFixed(1);
-                                return `${ctx.label}: R$ ${ctx.raw.toFixed(2).replace('.', ',')} - ${pct}%`;
-                            }
-                        }
-                    }
-                }
-            }
-        });
+    data: valores,
+    borderRadius: 12,
+    borderSkipped: false,
+    barThickness: 18,
+
+    backgroundColor: (context) => {
+        const chart = context.chart;
+        const { ctx, chartArea } = chart;
+
+        if (!chartArea) return '#3b82f6';
+
+        const gradient = ctx.createLinearGradient(
+            0,
+            chartArea.top,
+            chartArea.right,
+            chartArea.bottom
+        );
+
+        gradient.addColorStop(0, '#60a5fa');
+        gradient.addColorStop(1, '#2563eb');
+
+        return gradient;
+    },
+
+    hoverBackgroundColor: '#1d4ed8'
+}]
 
         const dadosLegenda = [
             { label: 'Entradas', valor: entrada, cor: '#10b981' },
