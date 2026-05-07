@@ -641,30 +641,218 @@ function desenharGrafico() {
     bodyColor: '#cbd5e1',
     borderColor: '#334155',
     borderWidth: 1,
-    padding: 14,
-    displayColors: false,
-    cornerRadius: 12,
+function desenharGrafico() {
+    const mes = mesAtual.getMonth();
+    const ano = mesAtual.getFullYear();
 
-    callbacks: {
-        label: (ctx) => {
-            const pct = ((ctx.raw / total) * 100).toFixed(1);
+    const transacoesMes = dados.filter(t => {
+        const dt = new Date(t.data);
+        return dt.getMonth() === mes && dt.getFullYear() === ano;
+    });
 
-            return [
-                `Valor: R$ ${ctx.raw.toFixed(2).replace('.', ',')}`,
-                `Participação: ${pct}%`
-            ];
+    if (chartInstance) {
+        chartInstance.destroy();
+    }
+
+    const canvas = document.getElementById('grafico-canvas');
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+
+    // =========================
+    // GRÁFICO POR CATEGORIA
+    // =========================
+
+    if (tipoGraficoAtivo === 'categoria') {
+
+        const gastosPorCat = {};
+
+        transacoesMes
+            .filter(t => t.tipo !== 'entrada')
+            .forEach(t => {
+                gastosPorCat[t.categoria] =
+                    (gastosPorCat[t.categoria] || 0) + t.valor;
+            });
+
+        const dadosGraf = Object.entries(gastosPorCat)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 8);
+
+        const elLegenda = document.getElementById('grafico-legenda');
+
+        if (dadosGraf.length === 0) {
+            if (elLegenda) {
+                elLegenda.innerHTML = `
+                    <p class="text-center text-slate-500 py-8">
+                        Sem gastos no mês
+                    </p>
+                `;
+            }
+            return;
+        }
+
+        const labels = dadosGraf.map(d => d[0]);
+        const valores = dadosGraf.map(d => d[1]);
+        const total = valores.reduce((s, v) => s + v, 0);
+
+        chartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels,
+                datasets: [{
+                    data: valores,
+                    backgroundColor: '#3b82f6',
+                    borderRadius: 8,
+                    barThickness: 18
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                indexAxis: 'y',
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        backgroundColor: '#0f172a',
+                        titleColor: '#fff',
+                        bodyColor: '#cbd5e1',
+                        borderColor: '#334155',
+                        borderWidth: 1,
+                        padding: 12,
+                        displayColors: false,
+                        callbacks: {
+                            label: (ctx) => {
+                                const pct = ((ctx.raw / total) * 100).toFixed(1);
+
+                                return [
+                                    `Valor: R$ ${ctx.raw.toFixed(2).replace('.', ',')}`,
+                                    `Participação: ${pct}%`
+                                ];
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+
+        if (elLegenda) {
+            elLegenda.innerHTML = dadosGraf.map(([cat, val]) => {
+                const pct = ((val / total) * 100).toFixed(1);
+
+                return `
+                    <div class="flex justify-between text-xs py-1">
+                        <span>${cat}</span>
+                        <span class="font-bold">
+                            R$ ${val.toFixed(2).replace('.', ',')} - ${pct}%
+                        </span>
+                    </div>
+                `;
+            }).join('');
+        }
+
+    }
+
+    // =========================
+    // GRÁFICO POR TIPO
+    // =========================
+
+    else {
+
+        let entrada = 0;
+        let saida = 0;
+        let cartao = 0;
+
+        transacoesMes.forEach(t => {
+            if (t.tipo === 'entrada') {
+                entrada += t.valor;
+            }
+            else if (t.metodo === 'cartao') {
+                cartao += t.valor;
+            }
+            else {
+                saida += t.valor;
+            }
+        });
+
+        const valores = [entrada, saida, cartao];
+        const total = valores.reduce((s, v) => s + v, 0);
+
+        const elLegenda = document.getElementById('grafico-legenda');
+
+        if (total === 0) {
+            if (elLegenda) {
+                elLegenda.innerHTML = `
+                    <p class="text-center text-slate-500 py-8">
+                        Sem dados no mês
+                    </p>
+                `;
+            }
+            return;
+        }
+
+        chartInstance = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Entradas', 'Saídas', 'Cartões'],
+                datasets: [{
+                    data: valores,
+                    backgroundColor: [
+                        '#10b981',
+                        '#f97316',
+                        '#ef4444'
+                    ],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                }
+            }
+        });
+
+        const dadosLegenda = [
+            { label: 'Entradas', valor: entrada, cor: '#10b981' },
+            { label: 'Saídas', valor: saida, cor: '#f97316' },
+            { label: 'Cartões', valor: cartao, cor: '#ef4444' }
+        ].filter(d => d.valor > 0);
+
+        if (elLegenda) {
+            elLegenda.innerHTML = dadosLegenda.map(d => {
+
+                const pct = ((d.valor / total) * 100).toFixed(1);
+
+                return `
+                    <div class="flex justify-between items-center text-xs py-1">
+                        <div class="flex items-center gap-2">
+                            <div
+                                class="w-3 h-3 rounded"
+                                style="background:${d.cor}"
+                            ></div>
+                            <span>${d.label}</span>
+                        </div>
+
+                        <span class="font-bold">
+                            R$ ${d.valor.toFixed(2).replace('.', ',')} - ${pct}%
+                        </span>
+                    </div>
+                `;
+
+            }).join('');
         }
     }
 }
-        if (elLegenda) elLegenda.innerHTML = dadosGraf.map(([cat, val]) => {
-            const pct = ((val / total) * 100).toFixed(1);
-            return `
-                <div class="flex justify-between text-xs py-1">
-                    <span>${cat}</span>
-                    <span class="font-bold">R$ ${val.toFixed(2).replace('.', ',')} - ${pct}%</span>
-                </div>
-            `;
-        }).join('');
 
     } else {
         let entrada = 0, saida = 0, cartao = 0;
@@ -970,12 +1158,6 @@ if(input) {
 });
 
 
-atualizar();
-atualizarMes();
-
-document.getElementById('modal-onboarding').style.display = 'none';
-document.getElementById('tela-pin').style.display = 'none';
-document.getElementById('app-content').style.display = 'flex';
 
 if (localStorage.getItem('bankday_tema') === 'light') {
     document.body.classList.add('light-mode');
