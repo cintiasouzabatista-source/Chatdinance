@@ -250,7 +250,9 @@ function processarMensagem() {
 
     let texto = textoOriginal.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
     const tipo = texto.includes('recebi') || texto.includes('vendi') || texto.includes('ganhei')? 'entrada' : 'saida';
-    let banco = contas[0].nome;
+    let banco = metodo === 'cartao'
+    ? (cartoes[0]?.nome || 'Cartão')
+    : contas[0].nome;
     let metodo = "conta";
 
     for (const conta of contas) {
@@ -262,6 +264,17 @@ function processarMensagem() {
             break;
         }
     }
+    if (
+    texto.includes('cartao') ||
+    texto.includes('crédito') ||
+    texto.includes('credito') ||
+    texto.includes('nubank') ||
+    texto.includes('visa') ||
+    texto.includes('master') ||
+    texto.includes('fatura')
+) {
+    metodo = 'cartao';
+}
 
     const regexParcelado = /(?:comprei\s+)?(.+?)\s+(\d+(?:[.,]\d+)?)\s*(?:reais?)?\s*(?:em\s+)?(\d{1,2})x?(?:\s+vezes)?(?:\s+(?:no\s+)?(.+))?/;
     const matchParc = texto.match(regexParcelado);
@@ -391,10 +404,22 @@ function mudarMes(d) {
 }
 
 function toggleTheme() {
-    document.body.classList.toggle('dark');
+    document.body.classList.toggle('light-mode');
+
     const icon = document.getElementById('theme-icon');
-    if (icon) icon.className = document.body.classList.contains('dark')? 'fas fa-sun text-amber-500 text-lg' : 'fas fa-moon text-blue-500 text-lg';
-    localStorage.setItem('bankday_tema', document.body.classList.contains('dark')? 'dark' : 'light');
+
+    if (icon) {
+        icon.className = document.body.classList.contains('light-mode')
+            ? 'fas fa-sun'
+            : 'fas fa-moon';
+    }
+
+    localStorage.setItem(
+        'bankday_tema',
+        document.body.classList.contains('light-mode')
+            ? 'light'
+            : 'dark'
+    );
 }
 
 function toggleVisibility() {
@@ -942,4 +967,11 @@ if (!modoTeste && !modoProducao) {
     initPin();
 } else {
     document.getElementById('app-content').style.display = 'flex';
+}
+
+if (localStorage.getItem('bankday_tema') === 'light') {
+    document.body.classList.add('light-mode');
+
+    const icon = document.getElementById('theme-icon');
+    if (icon) icon.className = 'fas fa-sun';
 }
