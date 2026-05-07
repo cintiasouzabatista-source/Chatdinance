@@ -426,12 +426,26 @@ document.addEventListener('click', function(e) {
     }
 });
 
-function trocarAba(aba) {
-    document.querySelectorAll('.nav-item').forEach(btn => btn.classList.remove('active'));
-    if (event && event.target) event.target.closest('.nav-item')?.classList.add('active');
+function trocarAba(aba, ev = null) {
+    document.querySelectorAll('.nav-item').forEach(btn => {
+        btn.classList.remove('active');
+    });
 
-    if (aba === 'extrato') abrirModal('modal-extrato');
-    if (aba === 'graficos') abrirModal('modal-graficos');
+    if (ev && ev.target) {
+        const navItem = ev.target.closest('.nav-item');
+        if (navItem) {
+            navItem.classList.add('active');
+        }
+    }
+
+    if (aba === 'extrato') {
+        abrirModal('modal-extrato');
+    }
+
+    if (aba === 'graficos') {
+        abrirModal('modal-graficos');
+    }
+
     if (aba === 'chat') {
         fecharModal('modal-extrato');
         fecharModal('modal-graficos');
@@ -898,8 +912,24 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('Input OK');
     }
     
+    
     if(btn) {
         btn.addEventListener('click', processarMensagem);
         console.log('Botão OK');
     }
 });
+
+const input = document.getElementById('user-input');
+const btnSend = document.querySelector('.btn-send');
+
+if (btnSend) {
+    btnSend.addEventListener('click', processarMensagem);
+}
+
+if (input) {
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            processarMensagem();
+        }
+    });
+}
