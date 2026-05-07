@@ -137,3 +137,42 @@ nav{flex-shrink:0;display:flex;justify-content:space-around;padding:8px 0}
 /* Corrige largura */
 body,html{width:100%;overflow-x:hidden}
 #app-content *{max-width:100%}
+
+
+body.light-mode {
+    background: #f8fafc;
+    color: #0f172a;
+}
+
+body.light-mode header,
+body.light-mode footer,
+body.light-mode nav,
+body.light-mode .modal-content,
+body.light-mode .card-item,
+body.light-mode .card-liquido,
+body.light-mode .msg.system .msg-bubble,
+body.light-mode .menu-dropdown,
+body.light-mode .header-actions button,
+body.light-mode footer input,
+body.light-mode .modal-body input,
+body.light-mode .modal-body select,
+body.light-mode .item-temp {
+    background: #ffffff;
+    color: #0f172a;
+    border-color: #cbd5e1;
+}
+
+body.light-mode main {
+    background: #f1f5f9;
+}
+
+body.light-mode .modal {
+    background: rgba(255,255,255,0.7);
+}
+
+body.light-mode .card-item p:first-child,
+body.light-mode .card-liquido-top p,
+body.light-mode .msg-info,
+body.light-mode .msg-time {
+    color: #64748b;
+}
