@@ -233,16 +233,22 @@ function addMensagem(texto, tipo = 'system', info = '', autoLimpar = true, id = 
     }
 }
 
-function processarMensagem() {
+ffunction processarMensagem() {
     const input = document.getElementById("user-input");
+
     if (!input) {
         console.error('Input não encontrado');
         return;
     }
-    let textoOriginal = input.value.trim();
-    if (!textoOriginal) return;
-    input.value = "";
 
+    let textoOriginal = input.value.trim();
+
+    if (!textoOriginal) return;
+
+    const texto = textoOriginal.toLowerCase();
+
+    input.value = "";
+    
     if (!contas.length) {
         contas = [{nome: 'Principal', saldoInicial: 0}];
         salvar();
@@ -268,7 +274,7 @@ if (
 
 let banco = metodo === 'cartao'
     ? (cartoes[0]?.nome || 'Cartão')
-    : contas[0].nome;
+  : (contas[0]?.nome || 'Principal');
     
     if (
     texto.includes('cartao') ||
@@ -933,13 +939,12 @@ document.addEventListener('DOMContentLoaded', function() {
     const input = document.getElementById('user-input');
     const btn = document.getElementById('btn-enviar');
     
-    if(input) {
-        input.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                processarMensagem();
-            }
-        });
+input.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        processarMensagem();
+    }
+});
         console.log('Input OK');
     }
     
