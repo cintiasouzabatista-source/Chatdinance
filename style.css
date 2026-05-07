@@ -187,3 +187,22 @@ body.light-mode .msg-time {
     font-size:11px;
     font-weight:600;
 }
+
+.msg-badge{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+
+    padding:5px 10px;
+    margin-top:6px;
+
+    border-radius:999px;
+
+    background:rgba(59,130,246,.15);
+    color:#60a5fa;
+
+    border:1px solid rgba(59,130,246,.25);
+
+    font-size:11px;
+    font-weight:700;
+}
