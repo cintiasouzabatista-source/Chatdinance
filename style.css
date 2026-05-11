@@ -742,32 +742,29 @@ backgroundColor: [
 }
 
 .modal-actions {
-    display: grid;
-    grid-template-columns: 1fr 2fr;
+    display: flex;
     gap: 10px;
     margin-top: 20px;
 }
 
 .btn-delete {
+    flex: 1;
     padding: 14px;
-    background: #ef4444;
-    border: none;
+    background: transparent;
+    border: 1px solid #ef4444;
     border-radius: 10px;
-    color: white;
+    color: #ef4444;
     font-weight: 700;
     font-size: 15px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
     cursor: pointer;
 }
 
 .btn-delete:active {
-    background: #dc2626;
+    background: rgba(239, 68, 68, 0.1);
 }
 
 .btn-save {
+    flex: 2;
     padding: 14px;
     background: #10b981;
     border: none;
@@ -781,7 +778,6 @@ backgroundColor: [
 .btn-save:active {
     background: #059669;
 }
-
 /* LIGHT MODE */
 body.light-mode .modal-head {
     border-color: #e2e8f0;
