@@ -597,58 +597,6 @@ function importarCSV(texto) {
     
     const linhas = texto.split('\n');
     //... resto do código
-function importarCSV(texto) {
-    const linhas = texto.split('\n');
-    let importadas = 0;
-    let erros = 0;
-
-    // Detecta separador: ; ou,
-    const primeiraLinha = linhas[0];
-    const separador = primeiraLinha.includes(';')? ';' : ',';
-
-    linhas.forEach((linha, idx) => {
-        if (idx === 0 ||!linha.trim()) return; // Pula cabeçalho
-        
-        const cols = linha.split(separador);
-        if (cols.length < 3) { erros++; return; }
-
-        try {
-            // Tenta detectar colunas automaticamente
-            let data, desc, valor, tipo;
-            function lerArquivoExtrato(event) {
-    const file = event.target.files[0];
-    if (!file) {
-        addMensagem('Nenhum arquivo selecionado', 'system');
-        return;
-    }
-
-    console.log('Arquivo selecionado:', file.name);
-    addMensagem(`Lendo arquivo ${file.name}...`, 'system');
-
-    const reader = new FileReader();
-    
-    reader.onload = function(e) {
-        const conteudo = e.target.result;
-        const extensao = file.name.split('.').pop().toLowerCase();
-        
-        console.log('Conteúdo lido:', conteudo.substring(0, 200));
-        
-        if (extensao === 'csv') {
-            importarCSV(conteudo);
-        } else if (extensao === 'ofx') {
-            importarOFX(conteudo);
-        } else {
-            addMensagem('Formato inválido. Use.csv ou.ofx', 'system');
-        }
-    };
-
-    reader.onerror = function() {
-        addMensagem('Erro ao ler arquivo', 'system');
-    };
-
-    reader.readAsText(file, 'UTF-8');
-    event.target.value = '';
-}
 
 function importarCSV(texto) {
     console.log('CSV recebido:', texto.substring(0, 300));
