@@ -1072,3 +1072,54 @@ body.light-mode .filter-dropdown button:active{
 body.light-mode .extrato-item:active{
     background:#f8fafc;
 }
+
+.btn-upload {
+    width: 100%;
+    padding: 16px;
+    background: #3b82f6;
+    border: none;
+    border-radius: 12px;
+    color: white;
+    font-weight: 700;
+    font-size: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 16px;
+    cursor: pointer;
+}
+
+.btn-upload:active {
+    background: #2563eb;
+}
+
+.divider-text {
+    text-align: center;
+    color: #64748b;
+    font-size: 13px;
+    margin: 16px 0;
+    position: relative;
+}
+
+.divider-text::before,
+.divider-text::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    width: 40%;
+    height: 1px;
+    background: #334155;
+}
+
+.divider-text::before { left: 0; }
+.divider-text::after { right: 0; }
+
+body.light-mode.btn-upload {
+    background: #3b82f6;
+}
+
+body.light-mode.divider-text::before,
+body.light-mode.divider-text::after {
+    background: #cbd5e1;
+}
