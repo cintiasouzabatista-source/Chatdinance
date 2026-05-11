@@ -447,34 +447,38 @@ function executarImportacao() {
     const linhas = texto.split('\n');
     let importadas = 0;
     let erros = 0;
-    let formatoDetectado = null;
 
     linhas.forEach((linha, idx) => {
         linha = linha.trim();
         
-        // Pula linhas vazias, cabeçalhos e saldos
+        // Pula cabeçalhos e vazias
         if (!linha || 
             linha.toUpperCase().includes('DATA') || 
-            linha.toUpperCase().includes('HISTÓRICO') ||
             linha.toUpperCase().includes('LANÇAMENTO') ||
             linha.toUpperCase().includes('SALDO')) return;
 
         let data, desc, valor, tipo;
+        let match = null;
 
-        // FORMATO 1: 02/05/2026 PIX RECEBIDO 500,00 C
-        let match = linha.match(/^(\d{2}\/\d{2}\/\d{4})\s+(.+?)\s+([\d.,]+)\s*([CD])?$/i);
+        // FORMATO MERCADO PAGO: 01-04-2026 Pagamento com QR Pix LEMON 152107209733
+        // O valor vem antes do ID longo, ou não vem. Se não vier, ignora.
+        match = linha.match(/^(\d{2}-\d{4})\s+(.+?)\s+([\d.,]+)\s+\d{10,}$/);
         if (match) {
-            [, data, desc, valor, tipo] = match;
-            formatoDetectado = 'BANCO_1';
+            [, data, desc, valor] = match;
+            data = data.replace(/-/g, '/'); // 01-04-2026 -> 01/04/2026
+            tipo = desc.toLowerCase().match(/rendimento|receb|depós|créd|estorno|pix receb/)? 'C' : 'D';
         }
 
-        // FORMATO 2: 02/05/2026 PIX RECEBIDO - CLARA + R$ 500,00
+        // FORMATO 1: 02/05/2026 PIX RECEBIDO 500,00 C
+        if (!match) {
+            match = linha.match(/^(\d{2}\/\d{2}\/\d{4})\s+(.+?)\s+([\d.,]+)\s*([CD])?$/i);
+            if (match) [, data, desc, valor, tipo] = match;
+        }
+
+        // FORMATO 2: 02/05/2026 PIX RECEBIDO + R$ 500,00
         if (!match) {
             match = linha.match(/^(\d{2}\/\d{2}\/\d{4})\s+(.+?)\s*([+-])\s*R?\$?\s*([\d.,]+)$/i);
-            if (match) {
-                [, data, desc, tipo, valor] = match;
-                formatoDetectado = 'BANCO_2';
-            }
+            if (match) [, data, desc, tipo, valor] = match;
         }
 
         // FORMATO 3: 02/05 COMPRA CARTÃO 350,00-
@@ -482,35 +486,22 @@ function executarImportacao() {
             match = linha.match(/^(\d{2}\/\d{2})\s+(.+?)\s+([\d.,]+)([+-])$/i);
             if (match) {
                 [, data, desc, valor, tipo] = match;
-                data += '/' + new Date().getFullYear(); // Adiciona ano atual
-                formatoDetectado = 'BANCO_3';
+                data += '/' + new Date().getFullYear();
             }
         }
 
-        // FORMATO 4: 02/05/26 PIX RECEBIDO 500.00
+        // FORMATO 4: Sem C/D, deduz pela descrição
         if (!match) {
             match = linha.match(/^(\d{2}\/\d{2}\/\d{2,4})\s+(.+?)\s+([\d.,]+)$/i);
             if (match) {
                 [, data, desc, valor] = match;
-                // Deduz tipo pela descrição
-                tipo = desc.toLowerCase().match(/receb|depós|créd|estorno|salár/)? 'C' : 'D';
-                formatoDetectado = 'BANCO_4';
+                tipo = desc.toLowerCase().match(/receb|depós|créd|estorno|salár|rendimento/)? 'C' : 'D';
             }
         }
 
-        // FORMATO 5: 02/05/2026 - PIX RECEBIDO - R$ 500,00
-        if (!match) {
-            match = linha.match(/^(\d{2}\/\d{2}\/\d{4})\s*[-–]\s*(.+?)\s*[-–]\s*R?\$?\s*([\d.,]+)$/i);
-            if (match) {
-                [, data, desc, valor] = match;
-                tipo = desc.toLowerCase().match(/receb|depós|créd|estorno|salár/)? 'C' : 'D';
-                formatoDetectado = 'BANCO_5';
-            }
-        }
-
-        if (match) {
+        if (match && valor) {
             try {
-                // Converte data DD/MM/YYYY ou DD/MM/YY
+                // Converte data
                 let partesData = data.split('/');
                 let dia = partesData[0];
                 let mes = partesData[1];
@@ -518,14 +509,15 @@ function executarImportacao() {
                 if (ano.length === 2) ano = '20' + ano;
                 const dataISO = new Date(ano, mes - 1, dia).toISOString();
                 
-                // Converte valor BR: 1.500,00 -> 1500.00
+                // Converte valor
                 const valorNum = parseFloat(valor.replace(/\./g, '').replace(',', '.'));
+                if (isNaN(valorNum) || valorNum === 0) return;
                 
-                // Define tipo: C/+ = entrada, D/- = saída
+                // Define tipo
                 const tipoFinal = (tipo?.toUpperCase() === 'C' || tipo === '+')? 'entrada' : 'saida';
                 
-                // Limpa descrição
-                desc = desc.trim().replace(/\s+/g, ' ');
+                // Limpa descrição - remove ID longo do final
+                desc = desc.trim().replace(/\s+\d{10,}$/, '').replace(/\s+/g, ' ');
 
                 const id = Date.now() + Math.random() + idx;
                 dados.push({
@@ -533,8 +525,8 @@ function executarImportacao() {
                     descricao: cap(desc),
                     valor: valorNum,
                     tipo: tipoFinal,
-                    metodo: desc.toLowerCase().includes('cartão') || desc.toLowerCase().includes('cartao')? 'cartao' : 'conta',
-                    banco: contas[0]?.nome || 'Principal',
+                    metodo: desc.toLowerCase().includes('cartão') || desc.toLowerCase().includes('qr')? 'conta' : 'conta',
+                    banco: contas[0]?.nome || 'Mercado Pago',
                     data: dataISO,
                     texto: linha,
                     categoria: identificarCategoria(desc, tipoFinal)
@@ -543,8 +535,11 @@ function executarImportacao() {
             } catch (e) {
                 erros++;
             }
-        } else if (linha.length > 10) {
-            erros++;
+        } else if (linha.length > 15 &&!linha.match(/^\d+$/)) {
+            // Se a linha é grande mas não tem valor, provavelmente é do Mercado Pago sem valor
+            // Ex: 02-04-2026 Rendimentos 1741861932717
+            const matchMP = linha.match(/^(\d{2}-\d{2}-\d{4})\s+(.+?)\s+\d{10,}$/);
+            if (!matchMP) erros++;
         }
     });
 
@@ -553,11 +548,10 @@ function executarImportacao() {
         atualizar();
         fecharModal('modal-importar');
         addMensagem(`${importadas} transações importadas`, 'system');
-        if (formatoDetectado) addMensagem(`Formato detectado: ${formatoDetectado}`, 'system');
-        if (erros > 0) addMensagem(`${erros} linhas ignoradas`, 'system');
+        if (erros > 0) addMensagem(`${erros} linhas ignoradas sem valor`, 'system');
     } else {
-        addMensagem('Nenhuma transação reconhecida. Verifique o formato', 'system');
-        addMensagem('Formatos aceitos: DD/MM/AAAA DESCRIÇÃO VALOR C/D ou com +/- ou R$', 'system');
+        addMensagem('Nenhuma transação com valor encontrada', 'system');
+        addMensagem('Mercado Pago: precisa ter o valor antes do ID longo', 'system');
     }
 }
 function atualizar() {
