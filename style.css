@@ -681,3 +681,123 @@ backgroundColor: [
     '#f97316',
     '#84cc16'
 ]
+/* MODAL FORM */
+.modal-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 20px 16px;
+    border-bottom: 1px solid #334155;
+}
+
+.modal-head h3 {
+    font-size: 18px;
+    font-weight: 700;
+    margin: 0;
+    color: #f1f5f9;
+}
+
+.modal-head button {
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    font-size: 20px;
+    padding: 4px;
+    cursor: pointer;
+}
+
+.form-group {
+    margin-bottom: 14px;
+}
+
+.form-group label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: #94a3b8;
+    margin-bottom: 6px;
+}
+
+.form-group input,
+.form-group select {
+    width: 100%;
+    padding: 12px;
+    background: #0f172a;
+    border: 1px solid #334155;
+    border-radius: 10px;
+    color: #f1f5f9;
+    font-size: 15px;
+    outline: none;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+    border-color: #3b82f6;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.modal-actions {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.btn-delete {
+    padding: 14px;
+    background: #ef4444;
+    border: none;
+    border-radius: 10px;
+    color: white;
+    font-weight: 700;
+    font-size: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    cursor: pointer;
+}
+
+.btn-delete:active {
+    background: #dc2626;
+}
+
+.btn-save {
+    padding: 14px;
+    background: #10b981;
+    border: none;
+    border-radius: 10px;
+    color: white;
+    font-weight: 700;
+    font-size: 15px;
+    cursor: pointer;
+}
+
+.btn-save:active {
+    background: #059669;
+}
+
+/* LIGHT MODE */
+body.light-mode .modal-head {
+    border-color: #e2e8f0;
+}
+
+body.light-mode .modal-head h3 {
+    color: #0f172a;
+}
+
+body.light-mode .form-group input,
+body.light-mode .form-group select {
+    background: #f8fafc;
+    border-color: #cbd5e1;
+    color: #0f172a;
+}
+
+body.light-mode .form-group label {
+    color: #64748b;
+}
