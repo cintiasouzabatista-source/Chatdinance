@@ -501,8 +501,7 @@ function atualizar() {
 
     let dadosMes = dados.filter(d => {
         const dt = new Date(d.data);
-        return dt.getMonth() === mes &&
-               dt.getFullYear() === ano;
+        return dt.getMonth() === mes && dt.getFullYear() === ano;
     });
 
     let ent = dadosMes
@@ -510,17 +509,11 @@ function atualizar() {
         .reduce((s, d) => s + d.valor, 0);
 
     let sai = dadosMes
-        .filter(d =>
-            d.tipo === 'saida' &&
-            d.metodo !== 'cartao'
-        )
+        .filter(d => d.tipo === 'saida' && d.metodo !== 'cartao')
         .reduce((s, d) => s + d.valor, 0);
 
     let fat = dadosMes
-        .filter(d =>
-            d.tipo === 'saida' &&
-            d.metodo === 'cartao'
-        )
+        .filter(d => d.tipo === 'saida' && d.metodo === 'cartao')
         .reduce((s, d) => s + d.valor, 0);
 
     let saldo = ent - sai;
@@ -528,88 +521,53 @@ function atualizar() {
 
     // SALDO PROJETADO
     if (config.projetarSaldo) {
-
         const hoje = new Date();
-
         const futuras = dados.filter(d => {
             const dt = new Date(d.data);
-
-            return dt > hoje &&
-                   dt.getMonth() === mes &&
-                   dt.getFullYear() === ano;
+            return dt > hoje && dt.getMonth() === mes && dt.getFullYear() === ano;
         });
-
-        const futurasEntradas = futuras
-            .filter(d => d.tipo === 'entrada')
-            .reduce((s, d) => s + d.valor, 0);
-
-        const futurasSaidas = futuras
-            .filter(d => d.tipo === 'saida')
-            .reduce((s, d) => s + d.valor, 0);
-
+        const futurasEntradas = futuras.filter(d => d.tipo === 'entrada').reduce((s, d) => s + d.valor, 0);
+        const futurasSaidas = futuras.filter(d => d.tipo === 'saida').reduce((s, d) => s + d.valor, 0);
         saldo += futurasEntradas - futurasSaidas;
         liquido += futurasEntradas - futurasSaidas;
     }
 
-    document.getElementById('card-entradas').textContent =
-        formatar(ent);
-
-    document.getElementById('card-saidas').textContent =
-        formatar(sai);
-
-    document.getElementById('card-saldo').textContent =
-        formatar(saldo);
-
-    document.getElementById('card-cartoes').textContent =
-        formatar(fat);
-
-    document.getElementById('card-liquido').textContent =
-        formatar(liquido);
+    document.getElementById('card-entradas').textContent = formatar(ent);
+    document.getElementById('card-saidas').textContent = formatar(sai);
+    document.getElementById('card-saldo').textContent = formatar(saldo);
+    document.getElementById('card-cartoes').textContent = formatar(fat);
+    document.getElementById('card-liquido').textContent = formatar(liquido);
 
     // CORES DINÂMICAS
-    document.getElementById('card-saldo').className =
-        `val ${saldo >= 0
-            ? 'text-blue'
-            : 'text-rose'}`;
-
-    document.getElementById('card-liquido').className =
-        `val big ${liquido >= 0
-            ? 'text-emerald'
-            : 'text-rose'}`;
-
-    document.getElementById('card-saidas').className =
-        `val ${sai > ent
-            ? 'text-rose'
-            : 'text-orange'}`;
-
-    document.getElementById('card-cartoes').className =
-        `val ${fat > saldo
-            ? 'text-rose'
-            : 'text-orange'}`;
+    document.getElementById('card-saldo').className = `val ${saldo >= 0 ? 'text-blue' : 'text-rose'}`;
+    document.getElementById('card-liquido').className = `val big ${liquido >= 0 ? 'text-emerald' : 'text-rose'}`;
+    document.getElementById('card-saidas').className = `val ${sai > ent ? 'text-rose' : 'text-orange'}`;
+    document.getElementById('card-cartoes').className = `val ${fat > saldo ? 'text-rose' : 'text-orange'}`;
 
     aplicarVisualSaldoProjetado();
 }
 
-    const ent = dadosMes.filter(d => d.tipo === 'entrada').reduce((s,d) => s + d.valor, 0);
-    const sai = dadosMes.filter(d => d.tipo === 'saida' && d.metodo!== 'cartao').reduce((s,d) => s + d.valor, 0);
-    const fat = dadosMes.filter(d => d.tipo === 'saida' && d.metodo === 'cartao').reduce((s,d) => s + d.valor, 0);
-    const saldo = ent - sai;
-    const liquido = saldo - fat;
-
-    const elEntradas = document.getElementById('card-entradas');
-    const elSaidas = document.getElementById('card-saidas');
-    const elSaldo = document.getElementById('card-saldo');
-    const elCartoes = document.getElementById('card-cartoes');
-    const elLiquido = document.getElementById('card-liquido');
-
-    if (elEntradas) elEntradas.textContent = formatar(ent);
-    if (elSaidas) elSaidas.textContent = formatar(sai);
-    if (elSaldo) elSaldo.textContent = formatar(saldo);
-    if (elCartoes) elCartoes.textContent = formatar(fat);
-    if (elLiquido) elLiquido.textContent = formatar(liquido);
-
-    if (elSaldo) elSaldo.className = `val text-lg font-black mt-1 ${saldo >= 0? 'text-blue' : 'text-rose'}`;
-    if (elLiquido) elLiquido.className = `val text-emerald big ${liquido >= 0? 'text-emerald' : 'text-rose'}`;
+// LIGA EVENTOS SEMPRE QUE O APP APARECER
+function ligarEventosInput() {
+    const input = document.getElementById('user-input');
+    const btn = document.getElementById('btn-enviar');
+    
+    if (input && !input.dataset.ligado) {
+        input.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                processarMensagem();
+            }
+        });
+        input.dataset.ligado = 'true';
+        console.log('Input ligado');
+    }
+    
+    if (btn && !btn.dataset.ligado) {
+        btn.addEventListener('click', processarMensagem);
+        btn.dataset.ligado = 'true';
+        console.log('Botão ligado');
+    }
 }
 
 function atualizarMes() {
@@ -625,26 +583,16 @@ function mudarMes(d) {
 
 function toggleTheme() {
     document.body.classList.toggle('light-mode');
-
     const icon = document.getElementById('theme-icon');
-
     if (icon) {
-        icon.className = document.body.classList.contains('light-mode')
-            ? 'fas fa-sun'
-            : 'fas fa-moon';
+        icon.className = document.body.classList.contains('light-mode') ? 'fas fa-sun' : 'fas fa-moon';
     }
-
-    localStorage.setItem(
-        'bankday_tema',
-        document.body.classList.contains('light-mode')
-            ? 'light'
-            : 'dark'
-    );
+    localStorage.setItem('bankday_tema', document.body.classList.contains('light-mode') ? 'light' : 'dark');
 }
 
 function toggleVisibility() {
-    valoresOcultos =!valoresOcultos;
-    document.getElementById('eye-icon').className = valoresOcultos? 'fas fa-eye-slash text-lg' : 'fas fa-eye text-lg';
+    valoresOcultos = !valoresOcultos;
+    document.getElementById('eye-icon').className = valoresOcultos ? 'fas fa-eye-slash' : 'fas fa-eye';
     atualizar();
 }
 
@@ -665,7 +613,7 @@ document.addEventListener('click', function(e) {
     const menu = document.getElementById('menuDropdown');
     const btn = document.getElementById('btnMenu');
     if (!menu || menu.classList.contains('hidden')) return;
-    if (!menu.contains(e.target) &&!btn?.contains(e.target)) {
+    if (!menu.contains(e.target) && !btn?.contains(e.target)) {
         menu.classList.add('hidden');
         if (menuTimeout) clearTimeout(menuTimeout);
     }
@@ -675,22 +623,12 @@ function trocarAba(aba, ev = null) {
     document.querySelectorAll('.nav-item').forEach(btn => {
         btn.classList.remove('active');
     });
-
     if (ev && ev.target) {
         const navItem = ev.target.closest('.nav-item');
-        if (navItem) {
-            navItem.classList.add('active');
-        }
+        if (navItem) navItem.classList.add('active');
     }
-
-    if (aba === 'extrato') {
-        abrirModal('modal-extrato');
-    }
-
-    if (aba === 'graficos') {
-        abrirModal('modal-graficos');
-    }
-
+    if (aba === 'extrato') abrirModal('modal-extrato');
+    if (aba === 'graficos') abrirModal('modal-graficos');
     if (aba === 'chat') {
         fecharModal('modal-extrato');
         fecharModal('modal-graficos');
@@ -717,27 +655,19 @@ function fecharModal(id) {
 function filtrarExtrato() {
     const tipo = document.getElementById('filtro-tipo')?.value || '';
     const cat = document.getElementById('filtro-categoria')?.value || '';
-
     let filtrados = [...dados];
-  if (tipo) {
-
-    if (tipo === 'cartao') {
-        filtrados = filtrados.filter(
-            d => d.metodo === 'cartao'
-        );
-    } else {
-        filtrados = filtrados.filter(
-            d => d.tipo === tipo
-        );
+    if (tipo) {
+        if (tipo === 'cartao') {
+            filtrados = filtrados.filter(d => d.metodo === 'cartao');
+        } else {
+            filtrados = filtrados.filter(d => d.tipo === tipo);
+        }
     }
-}
     if (cat) filtrados = filtrados.filter(d => d.categoria === cat);
-
     const ent = filtrados.filter(d => d.tipo === 'entrada').reduce((s,d) => s+d.valor, 0);
     const sai = filtrados.filter(d => d.tipo === 'saida').reduce((s,d) => s+d.valor, 0);
     const elTotal = document.getElementById('total-extrato');
     if (elTotal) elTotal.textContent = `Entradas: ${formatar(ent)} | Saídas: ${formatar(sai)} | Saldo: ${formatar(ent - sai)}`;
-
     const lista = document.getElementById('lista-extrato');
     if (!lista) return;
     lista.innerHTML = filtrados.sort((a,b) => new Date(b.data) - new Date(a.data)).map(t => `
@@ -751,7 +681,6 @@ function filtrarExtrato() {
             </div>
         </div>
     `).join('') || '<p style="text-align:center;color:#64748b">Nenhuma transação encontrada</p>';
-
     const catSelect = document.getElementById('filtro-categoria');
     if (catSelect) {
         const cats = new Set();
@@ -770,258 +699,87 @@ function abrirGraficos() {
     trocarGrafico('categoria');
 }
 
-function fecharGraficos() {
-    document.getElementById('modal-graficos').style.display = 'none';
-    if (chartInstance) {
-        chartInstance.destroy();
-        chartInstance = null;
-    }
-}
-
 function trocarGrafico(tipo) {
     tipoGraficoAtivo = tipo;
     const btnCat = document.getElementById('btn-cat');
     const btnTipo = document.getElementById('btn-tipo');
-    if (btnCat) btnCat.className = tipo === 'categoria'
-  ? 'flex-1 bg-blue-600 text-white py-2 rounded-lg text-sm font-bold'
-    : 'flex-1 bg-slate-700 text-slate-300 py-2 rounded-lg text-sm font-bold';
-    if (btnTipo) btnTipo.className = tipo === 'tipo'
-  ? 'flex-1 bg-blue-600 text-white py-2 rounded-lg text-sm font-bold'
-    : 'flex-1 bg-slate-700 text-slate-300 py-2 rounded-lg text-sm font-bold';
+    if (btnCat) btnCat.className = tipo === 'categoria' ? 'flex-1 bg-blue-600 text-white py-2 rounded-lg text-sm font-bold' : 'flex-1 bg-slate-700 text-slate-300 py-2 rounded-lg text-sm font-bold';
+    if (btnTipo) btnTipo.className = tipo === 'tipo' ? 'flex-1 bg-blue-600 text-white py-2 rounded-lg text-sm font-bold' : 'flex-1 bg-slate-700 text-slate-300 py-2 rounded-lg text-sm font-bold';
     desenharGrafico();
 }
 
 function desenharGrafico() {
     const mes = mesAtual.getMonth();
     const ano = mesAtual.getFullYear();
-
     const transacoesMes = dados.filter(t => {
         const dt = new Date(t.data);
         return dt.getMonth() === mes && dt.getFullYear() === ano;
     });
-
-    if (chartInstance) {
-        chartInstance.destroy();
-    }
-
+    if (chartInstance) chartInstance.destroy();
     const canvas = document.getElementById('grafico-canvas');
     if (!canvas) return;
-
     const ctx = canvas.getContext('2d');
-
-    // =========================
-    // GRÁFICO POR CATEGORIA
-    // =========================
-
+    
     if (tipoGraficoAtivo === 'categoria') {
-
         const gastosPorCat = {};
-
-        transacoesMes
-            .filter(t => t.tipo !== 'entrada')
-            .forEach(t => {
-                gastosPorCat[t.categoria] =
-                    (gastosPorCat[t.categoria] || 0) + t.valor;
-            });
-
-        const dadosGraf = Object.entries(gastosPorCat)
-            .sort((a, b) => b[1] - a[1])
-            .slice(0, 8);
-
+        transacoesMes.filter(t => t.tipo !== 'entrada').forEach(t => {
+            gastosPorCat[t.categoria] = (gastosPorCat[t.categoria] || 0) + t.valor;
+        });
+        const dadosGraf = Object.entries(gastosPorCat).sort((a, b) => b[1] - a[1]).slice(0, 8);
         const elLegenda = document.getElementById('grafico-legenda');
-
         if (dadosGraf.length === 0) {
-            if (elLegenda) {
-                elLegenda.innerHTML = `
-                    <p class="text-center text-slate-500 py-8">
-                        Sem gastos no mês
-                    </p>
-                `;
-            }
+            if (elLegenda) elLegenda.innerHTML = '<p class="text-center text-slate-500 py-8">Sem gastos no mês</p>';
             return;
         }
-
         const labels = dadosGraf.map(d => d[0]);
         const valores = dadosGraf.map(d => d[1]);
         const total = valores.reduce((s, v) => s + v, 0);
-
         chartInstance = new Chart(ctx, {
             type: 'bar',
-            data: {
-                labels,
-                datasets: [{
-                    data: valores,
-                    backgroundColor: '#3b82f6',
-                    borderRadius: 8,
-                    barThickness: 18
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                indexAxis: 'y',
-                plugins: {
-                    legend: {
-                        display: false
-                    },
-                    tooltip: {
-                        backgroundColor: '#0f172a',
-                        titleColor: '#fff',
-                        bodyColor: '#cbd5e1',
-                        borderColor: '#334155',
-                        borderWidth: 1,
-                        padding: 12,
-                        displayColors: false,
-                        callbacks: {
-                            label: (ctx) => {
-                                const pct = ((ctx.raw / total) * 100).toFixed(1);
-
-                                return [
-                                    `Valor: R$ ${ctx.raw.toFixed(2).replace('.', ',')}`,
-                                    `Participação: ${pct}%`
-                                ];
-                            }
-                        }
-                    }
-                },
-                scales: {
-                    x: {
-                        beginAtZero: true
-                    }
-                }
-            }
+            data: { labels, datasets: [{ data: valores, backgroundColor: '#3b82f6', borderRadius: 8, barThickness: 18 }] },
+            options: { responsive: true, maintainAspectRatio: false, indexAxis: 'y', plugins: { legend: { display: false }, tooltip: { backgroundColor: '#0f172a', titleColor: '#fff', bodyColor: '#cbd5e1', borderColor: '#334155', borderWidth: 1, padding: 12, displayColors: false, callbacks: { label: (ctx) => { const pct = ((ctx.raw / total) * 100).toFixed(1); return [`Valor: R$ ${ctx.raw.toFixed(2).replace('.', ',')}`, `Participação: ${pct}%`]; } } } }, scales: { x: { beginAtZero: true } } }
         });
-
         if (elLegenda) {
             elLegenda.innerHTML = dadosGraf.map(([cat, val]) => {
                 const pct = ((val / total) * 100).toFixed(1);
-
-                return `
-                    <div class="flex justify-between text-xs py-1">
-                        <span>${cat}</span>
-                        <span class="font-bold">
-                            R$ ${val.toFixed(2).replace('.', ',')} - ${pct}%
-                        </span>
-                    </div>
-                `;
+                return `<div class="flex justify-between text-xs py-1"><span>${cat}</span><span class="font-bold">R$ ${val.toFixed(2).replace('.', ',')} - ${pct}%</span></div>`;
             }).join('');
         }
-
-    }
-
-    // =========================
-    // GRÁFICO POR TIPO
-    // =========================
-
-    else {
-
-        let entrada = 0;
-        let saida = 0;
-        let cartao = 0;
-
+    } else {
+        let entrada = 0, saida = 0, cartao = 0;
         transacoesMes.forEach(t => {
-            if (t.tipo === 'entrada') {
-                entrada += t.valor;
-            }
-            else if (t.metodo === 'cartao') {
-                cartao += t.valor;
-            }
-            else {
-                saida += t.valor;
-            }
+            if (t.tipo === 'entrada') entrada += t.valor;
+            else if (t.metodo === 'cartao') cartao += t.valor;
+            else saida += t.valor;
         });
-
         const valores = [entrada, saida, cartao];
         const total = valores.reduce((s, v) => s + v, 0);
-
         const elLegenda = document.getElementById('grafico-legenda');
-
         if (total === 0) {
-            if (elLegenda) {
-                elLegenda.innerHTML = `
-                    <p class="text-center text-slate-500 py-8">
-                        Sem dados no mês
-                    </p>
-                `;
-            }
+            if (elLegenda) elLegenda.innerHTML = '<p class="text-center text-slate-500 py-8">Sem dados no mês</p>';
             return;
         }
-
         chartInstance = new Chart(ctx, {
             type: 'doughnut',
-            data: {
-                labels: ['Entradas', 'Saídas', 'Cartões'],
-                datasets: [{
-                    data: valores,
-                    backgroundColor: [
-                        '#10b981',
-                        '#f97316',
-                        '#ef4444'
-                    ],
-                    borderWidth: 0
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        display: false
-                    }
-                }
-            }
+            data: { labels: ['Entradas', 'Saídas', 'Cartões'], datasets: [{ data: valores, backgroundColor: ['#10b981', '#f97316', '#ef4444'], borderWidth: 0 }] },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
         });
-
-        const dadosLegenda = [
-            { label: 'Entradas', valor: entrada, cor: '#10b981' },
-            { label: 'Saídas', valor: saida, cor: '#f97316' },
-            { label: 'Cartões', valor: cartao, cor: '#ef4444' }
-        ].filter(d => d.valor > 0);
-
+        const dadosLegenda = [{ label: 'Entradas', valor: entrada, cor: '#10b981' }, { label: 'Saídas', valor: saida, cor: '#f97316' }, { label: 'Cartões', valor: cartao, cor: '#ef4444' }].filter(d => d.valor > 0);
         if (elLegenda) {
             elLegenda.innerHTML = dadosLegenda.map(d => {
-
                 const pct = ((d.valor / total) * 100).toFixed(1);
-
-                return `
-                    <div class="flex justify-between items-center text-xs py-1">
-                        <div class="flex items-center gap-2">
-                            <div
-                                class="w-3 h-3 rounded"
-                                style="background:${d.cor}"
-                            ></div>
-                            <span>${d.label}</span>
-                        </div>
-
-                        <span class="font-bold">
-                            R$ ${d.valor.toFixed(2).replace('.', ',')} - ${pct}%
-                        </span>
-                    </div>
-                `;
-
+                return `<div class="flex justify-between items-center text-xs py-1"><div class="flex items-center gap-2"><div class="w-3 h-3 rounded" style="background:${d.cor}"></div><span>${d.label}</span></div><span class="font-bold">R$ ${d.valor.toFixed(2).replace('.', ',')} - ${pct}%</span></div>`;
             }).join('');
         }
     }
 }
 
-
-
 function renderizarListaTemp() {
     const listaContas = document.getElementById('lista-contas-temp');
     const listaCartoes = document.getElementById('lista-cartoes-temp');
-    if (!listaContas ||!listaCartoes) return;
-    listaContas.innerHTML = tempContas.map((c, i) => `
-        <div class="item-temp">
-            <span>${c.nome} - ${formatar(c.saldoInicial || 0)}</span>
-            <button onclick="removerTempConta(${i})"><i class="fas fa-times"></i></button>
-        </div>
-    `).join('');
-    listaCartoes.innerHTML = tempCartoes.map((c, i) => `
-        <div class="item-temp">
-            <span>${c.nome} - Fecha ${c.diaFechamento} | Vence ${c.diaVencimento}</span>
-            <button onclick="removerTempCartao(${i})"><i class="fas fa-times"></i></button>
-        </div>
-    `).join('');
+    if (!listaContas || !listaCartoes) return;
+    listaContas.innerHTML = tempContas.map((c, i) => `<div class="item-temp"><span>${c.nome} - ${formatar(c.saldoInicial || 0)}</span><button onclick="removerTempConta(${i})"><i class="fas fa-times"></i></button></div>`).join('');
+    listaCartoes.innerHTML = tempCartoes.map((c, i) => `<div class="item-temp"><span>${c.nome} - Fecha ${c.diaFechamento} | Vence ${c.diaVencimento}</span><button onclick="removerTempCartao(${i})"><i class="fas fa-times"></i></button></div>`).join('');
 }
 
 function addTempConta() {
@@ -1054,18 +812,8 @@ function finalizarCadastro() {
     contas = [...tempContas];
     cartoes = [...tempCartoes];
     contas.forEach(c => {
-        if (c.saldoInicial &&!dados.some(d => d.isSaldoInicial && d.banco === c.nome)) {
-            dados.push({
-                id: Date.now() + Math.random(),
-                descricao: "Saldo inicial",
-                valor: c.saldoInicial,
-                tipo: "entrada",
-                metodo: "conta",
-                banco: c.nome,
-                data: new Date().toISOString(),
-                isSaldoInicial: true,
-                categoria: 'Outras Receitas'
-            });
+        if (c.saldoInicial && !dados.some(d => d.isSaldoInicial && d.banco === c.nome)) {
+            dados.push({ id: Date.now() + Math.random(), descricao: "Saldo inicial", valor: c.saldoInicial, tipo: "entrada", metodo: "conta", banco: c.nome, data: new Date().toISOString(), isSaldoInicial: true, categoria: 'Outras Receitas' });
         }
     });
     salvar();
@@ -1083,10 +831,8 @@ function abrirModalEditar(id) {
     document.getElementById('edit-tipo').value = t.tipo;
     document.getElementById('edit-metodo').value = t.metodo;
     document.getElementById('edit-data').value = new Date(t.data).toISOString().split('T')[0];
-
     atualizarContasModal();
     atualizarCategorias();
-
     document.getElementById('edit-banco').value = t.banco;
     document.getElementById('edit-categoria').value = t.categoria;
     abrirModal('modal-editar');
@@ -1096,7 +842,7 @@ function atualizarContasModal() {
     const metodo = document.getElementById('edit-metodo').value;
     const selectBanco = document.getElementById('edit-banco');
     selectBanco.innerHTML = '';
-    const lista = metodo === 'cartao'? cartoes : contas;
+    const lista = metodo === 'cartao' ? cartoes : contas;
     lista.forEach(item => {
         const opt = document.createElement('option');
         opt.value = item.nome;
@@ -1109,7 +855,7 @@ function atualizarCategorias() {
     const tipo = document.getElementById('edit-tipo').value;
     const selectCat = document.getElementById('edit-categoria');
     selectCat.innerHTML = '';
-  const catsDoTipo = CATEGORIAS[tipo] || CATEGORIAS['saida'];
+    const catsDoTipo = CATEGORIAS[tipo] || CATEGORIAS['saida'];
     Object.keys(catsDoTipo).forEach(cat => {
         const opt = document.createElement('option');
         opt.value = cat;
@@ -1117,7 +863,6 @@ function atualizarCategorias() {
         selectCat.appendChild(opt);
     });
 }
-
 
 function salvarEdicao() {
     const t = dados.find(d => d.id === editandoId);
@@ -1136,7 +881,7 @@ function salvarEdicao() {
 }
 
 function deletarTransacao() {
-    dados = dados.filter(d => d.id!== editandoId);
+    dados = dados.filter(d => d.id !== editandoId);
     salvar();
     atualizar();
     fecharModal('modal-editar');
@@ -1159,12 +904,12 @@ function resetarApp() {
 }
 
 function toggleProjetado() {
-    config.projetarSaldo =!config.projetarSaldo;
+    config.projetarSaldo = !config.projetarSaldo;
     salvar();
     aplicarVisualSaldoProjetado();
     atualizar();
     toggleMenu();
-    addMensagem(`Projeção ${config.projetarSaldo? 'ativada' : 'desativada'}`, 'system');
+    addMensagem(`Projeção ${config.projetarSaldo ? 'ativada' : 'desativada'}`, 'system');
 }
 
 function aplicarVisualSaldoProjetado() {
@@ -1179,10 +924,6 @@ function aplicarVisualSaldoProjetado() {
     }
 }
 
-function editarContaCartao(tipo, idx) {
-    alert('Edição em breve');
-}
-
 function abrirExtrato(tipo) {
     if (tipo === 'entrada') document.getElementById('filtro-tipo').value = 'entrada';
     if (tipo === 'saida') document.getElementById('filtro-tipo').value = 'saida';
@@ -1192,70 +933,10 @@ function abrirExtrato(tipo) {
     filtrarExtrato();
 }
 
-// LIGA EVENTOS SEMPRE QUE O APP APARECER
-function ligarEventosInput() {
-    const input = document.getElementById('user-input');
-    const btn = document.getElementById('btn-enviar');
-    
-    if (input && !input.dataset.ligado) {
-        input.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                processarMensagem();
-            }
-        });
-        input.dataset.ligado = 'true';
-        console.log('Input ligado');
-    }
-    
-    if (btn && !btn.dataset.ligado) {
-        btn.addEventListener('click', processarMensagem);
-        btn.dataset.ligado = 'true';
-        console.log('Botão ligado');
-    }
-}
-
-// MODIFICA A FUNÇÃO liberarApp - ADICIONA ESSA LINHA NO FINAL
-function liberarApp() {
-    tentativasPin = 0;
-    pinBloqueadoAte = 0;
-    document.getElementById('pin-erro').classList.add('hidden');
-    document.getElementById('tela-pin').style.display = 'none';
-    document.getElementById('app-content').style.display = 'flex';
-
-    const inputs = document.querySelectorAll('.pin-input');
-    inputs.forEach(i => {
-        i.disabled = false;
-        i.value = '';
-    });
-    
-    ligarEventosInput(); // <-- ADICIONA ESSA LINHA
-}
-
-// MODIFICA A FUNÇÃO selecionarModo - ADICIONA ESSA LINHA NO FINAL DO 'else if modo teste'
-function selecionarModo(tipo) {
-    localStorage.setItem('bankday_modo', tipo);
-    document.getElementById('modal-onboarding').style.display = 'none';
-    if (tipo === 'producao') {
-        modoProducao = true;
-        modoTeste = false;
-    } else {
-        modoTeste = true;
-        modoProducao = false;
-        if (!contas.length) contas = [{nome: 'Principal', saldoInicial: 0}];
-        salvar();
-        document.getElementById('app-content').style.display = 'flex';
-        document.getElementById('tela-pin').style.display = 'none';
-        ligarEventosInput(); // <-- ADICIONA ESSA LINHA
-    }
-}
-
 // INIT FINAL
 document.addEventListener('DOMContentLoaded', function() {
     console.log('DOM carregado');
-    
     const modo = localStorage.getItem('bankday_modo');
-    
     if (!modo) {
         document.getElementById('modal-onboarding').style.display = 'flex';
         document.getElementById('app-content').style.display = 'none';
@@ -1266,16 +947,14 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('app-content').style.display = 'flex';
         if (!contas.length) contas = [{nome: 'Principal', saldoInicial: 0}];
         salvar();
-        ligarEventosInput(); // <-- LIGA AQUI TAMBÉM
+        ligarEventosInput();
     } else if (modo === 'producao') {
         document.getElementById('modal-onboarding').style.display = 'none';
         document.getElementById('app-content').style.display = 'none';
         initPin();
     }
-    
     atualizarMes();
     atualizar();
-    
     if (localStorage.getItem('bankday_tema') === 'light') {
         document.body.classList.add('light-mode');
         const icon = document.getElementById('theme-icon');
