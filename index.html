@@ -165,26 +165,37 @@
 <div id="modal-importar" class="modal">
     <div class="modal-content">
         <div class="modal-head">
-            <h3>Importar movimentação</h3>
+            <h3>Importar extrato</h3>
             <button onclick="fecharModal('modal-importar')"><i class="fas fa-times"></i></button>
         </div>
         <div class="modal-body">
             <div class="import-info">
-                <p>Cole o extrato copiado do banco:</p>
+                <p>Escolha o arquivo exportado do seu banco:</p>
                 <div class="import-format">
-                    <span>Formato aceito:</span>
-                    <code>02/05/2026 PIX RECEBIDO 500,00 C</code>
-                    <code>03/05/2026 PAGAMENTO LUZ 150,00 D</code>
+                    <span>Formatos aceitos:</span>
+                    <code>CSV - Padrão da maioria dos bancos</code>
+                    <code>OFX - Padrão internacional</code>
                 </div>
             </div>
-            <textarea id="texto-importacao" placeholder="Cole aqui o extrato..." rows="8"></textarea>
+
+            <input type="file" id="arquivo-extrato" accept=".csv,.ofx" style="display:none" onchange="lerArquivoExtrato(event)">
+            
+            <button onclick="document.getElementById('arquivo-extrato').click()" class="btn-upload">
+                <i class="fas fa-file-upload"></i>
+                Selecionar arquivo CSV/OFX
+            </button>
+
+            <div class="divider-text">ou</div>
+
+            <p class="modal-hint">Cole o texto se não tiver arquivo:</p>
+            <textarea id="texto-importacao" placeholder="DD/MM/AAAA DESCRIÇÃO VALOR C/D" rows="6"></textarea>
             
             <div class="modal-actions">
                 <button onclick="fecharModal('modal-importar')" class="btn-cancelar">
                     Cancelar
                 </button>
                 <button onclick="executarImportacao()" class="btn-save">
-                    Importar
+                    Importar texto
                 </button>
             </div>
         </div>
