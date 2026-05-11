@@ -247,7 +247,7 @@
     </div>
 </div>
 
-<!-- MODAL EDITAR -->
+<<!-- MODAL EDITAR -->
 <div id="modal-editar" class="modal">
     <div class="modal-content">
         <div class="modal-head">
@@ -255,28 +255,57 @@
             <button onclick="fecharModal('modal-editar')"><i class="fas fa-times"></i></button>
         </div>
         <div class="modal-body">
-            <input type="text" id="edit-desc" placeholder="Descrição">
-            <input type="number" id="edit-valor" step="0.01" placeholder="Valor">
-            <input type="date" id="edit-data">
-            <select id="edit-tipo" onchange="atualizarCategorias()">
-                <option value="entrada">Entrada</option>
-                <option value="saida">Saída</option>
-            </select>
-            <select id="edit-metodo" onchange="atualizarContasModal()">
-                <option value="conta">Conta</option>
-                <option value="cartao">Cartão</option>
-                <option value="dinheiro">Dinheiro</option>
-            </select>
-            <select id="edit-categoria"></select>
-            <select id="edit-banco"></select>
-            <div class="row-btns">
-                <button onclick="salvarEdicao()" class="btn-save">Salvar</button>
-                <button onclick="deletarTransacao()" class="btn-delete"><i class="fas fa-trash"></i></button>
+            <div class="form-group">
+                <label>Descrição</label>
+                <input type="text" id="edit-desc" placeholder="Descrição">
+            </div>
+            <div class="form-group">
+                <label>Valor</label>
+                <input type="number" id="edit-valor" step="0.01" placeholder="0,00">
+            </div>
+            <div class="form-group">
+                <label>Data</label>
+                <input type="date" id="edit-data">
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Tipo</label>
+                    <select id="edit-tipo" onchange="atualizarCategorias()">
+                        <option value="entrada">Entrada</option>
+                        <option value="saida">Saída</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Método</label>
+                    <select id="edit-metodo" onchange="atualizarContasModal()">
+                        <option value="conta">Conta</option>
+                        <option value="cartao">Cartão</option>
+                        <option value="dinheiro">Dinheiro</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Categoria</label>
+                    <select id="edit-categoria"></select>
+                </div>
+                <div class="form-group">
+                    <label>Conta/Cartão</label>
+                    <select id="edit-banco"></select>
+                </div>
+            </div>
+            
+            <div class="modal-actions">
+                <button onclick="deletarTransacao()" class="btn-delete">
+                    <i class="fas fa-trash"></i> Excluir
+                </button>
+                <button onclick="salvarEdicao()" class="btn-save">
+                    Salvar
+                </button>
             </div>
         </div>
     </div>
 </div>
-
 <script src="script.js"></script>
 </body>
 </html>
