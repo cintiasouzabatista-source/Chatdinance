@@ -615,17 +615,71 @@ function importarCSV(texto) {
         try {
             // Tenta detectar colunas automaticamente
             let data, desc, valor, tipo;
-            
-            // Formato comum: Data,Descrição,Valor ou Data,Histórico,Valor,Tipo
-            data = cols[0].trim();
-            desc = cols[1].trim();
-            valor = cols[2].trim();
-            tipo = cols[3]? cols[3].trim() : null;
+            function lerArquivoExtrato(event) {
+    const file = event.target.files[0];
+    if (!file) {
+        addMensagem('Nenhum arquivo selecionado', 'system');
+        return;
+    }
+
+    console.log('Arquivo selecionado:', file.name);
+    addMensagem(`Lendo arquivo ${file.name}...`, 'system');
+
+    const reader = new FileReader();
+    
+    reader.onload = function(e) {
+        const conteudo = e.target.result;
+        const extensao = file.name.split('.').pop().toLowerCase();
+        
+        console.log('Conteúdo lido:', conteudo.substring(0, 200));
+        
+        if (extensao === 'csv') {
+            importarCSV(conteudo);
+        } else if (extensao === 'ofx') {
+            importarOFX(conteudo);
+        } else {
+            addMensagem('Formato inválido. Use.csv ou.ofx', 'system');
+        }
+    };
+
+    reader.onerror = function() {
+        addMensagem('Erro ao ler arquivo', 'system');
+    };
+
+    reader.readAsText(file, 'UTF-8');
+    event.target.value = '';
+}
+
+function importarCSV(texto) {
+    console.log('CSV recebido:', texto.substring(0, 300));
+    addMensagem('Processando CSV...', 'system');
+    
+    const linhas = texto.split('\n');
+    let importadas = 0;
+    let erros = 0;
+
+    // Detecta separador: ; ou,
+    const primeiraLinha = linhas[0];
+    const separador = primeiraLinha.includes(';')? ';' : ',';
+
+    linhas.forEach((linha, idx) => {
+        if (idx === 0 ||!linha.trim()) return; // Pula cabeçalho
+        
+        const cols = linha.split(separador).map(c => c.trim().replace(/^"|"$/g, ''));
+        if (cols.length < 3) { erros++; return; }
+
+        try {
+            let data = cols[0];
+            let desc = cols[1];
+            let valor = cols[2];
+            let tipo = cols[3] || null;
 
             // Limpa data: 01/04/2026 ou 01-04-2026
             data = data.replace(/-/g, '/');
             let partesData = data.split('/');
-            if (partesData[2].length === 2) partesData[2] = '20' + partesData[2];
+            if (partesData[2] && partesData[2].length === 2) partesData[2] = '20' + partesData[2];
+            if (partesData.length!== 3) { erros++; return; }
+            
             const dataISO = new Date(partesData[2], partesData[1] - 1, partesData[0]).toISOString();
 
             // Limpa valor: R$ 1.500,00 -> 1500.00
@@ -635,7 +689,7 @@ function importarCSV(texto) {
             // Detecta tipo
             let tipoFinal = 'saida';
             if (tipo) {
-                tipoFinal = tipo.toUpperCase().match(/C|CRÉD|CRED|\+/)? 'entrada' : 'saida';
+                tipoFinal = tipo.toUpperCase().match(/C|CRÉD|CRED|\+|RECEB/)? 'entrada' : 'saida';
             } else {
                 tipoFinal = valor > 0? 'entrada' : 'saida';
                 valor = Math.abs(valor);
@@ -647,7 +701,7 @@ function importarCSV(texto) {
                 descricao: cap(desc),
                 valor: valor,
                 tipo: tipoFinal,
-                metodo: 'conta',
+                metodo: desc.toLowerCase().includes('cartão') || desc.toLowerCase().includes('qr')? 'conta' : 'conta',
                 banco: contas[0]?.nome || 'Principal',
                 data: dataISO,
                 texto: linha,
@@ -655,6 +709,7 @@ function importarCSV(texto) {
             });
             importadas++;
         } catch (e) {
+            console.error('Erro linha:', idx, e);
             erros++;
         }
     });
@@ -668,12 +723,9 @@ function importarCSV(texto) {
     } else {
         addMensagem('Nenhuma transação válida no CSV', 'system');
     }
-    
-    document.getElementById('arquivo-extrato').value = '';
 }
 
 function importarOFX(texto) {
-    // OFX é XML, parser simples
     const transacoes = texto.match(/<STMTTRN>[\s\S]*?<\/STMTTRN>/g);
     if (!transacoes) {
         addMensagem('Arquivo OFX inválido', 'system');
@@ -714,8 +766,9 @@ function importarOFX(texto) {
         fecharModal('modal-importar');
         addMensagem(`${importadas} transações importadas do OFX`, 'system');
     }
-    document.getElementById('arquivo-extrato').value = '';
 }
+
+
 
 function atualizar() {
     const mes = mesAtual.getMonth();
