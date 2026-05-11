@@ -961,3 +961,91 @@ document.addEventListener('DOMContentLoaded', function() {
         if (icon) icon.className = 'fas fa-sun';
     }
 });
+
+// GARANTE QUE A FUNÇÃO É GLOBAL
+window.processarMensagem = function() {
+    const input = document.getElementById("user-input");
+    if (!input) {
+        console.error('Input não encontrado');
+        return;
+    }
+    let textoOriginal = input.value.trim();
+    if (!textoOriginal) return;
+    input.value = "";
+
+    if (!contas.length) {
+        contas = [{nome: 'Principal', saldoInicial: 0}];
+        salvar();
+    }
+
+    let texto = textoOriginal.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    const tipo = texto.includes('recebi') || texto.includes('vendi') || texto.includes('ganhei')? 'entrada' : 'saida';
+    let banco = contas[0].nome;
+    let metodo = "conta";
+
+    for (const conta of contas) {
+        const nomeConta = conta.nome.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        const regex = new RegExp(`(?:no|na|em)\\s+(?:conta\\s+)?${nomeConta}\\b`);
+        if (regex.test(texto)) {
+            banco = conta.nome;
+            metodo = conta.nome.toLowerCase().includes('dinheiro') || conta.nome.toLowerCase().includes('carteira')? "dinheiro" : "conta";
+            break;
+        }
+    }
+
+    const regexParcelado = /(?:comprei\s+)?(.+?)\s+(\d+(?:[.,]\d+)?)\s*(?:reais?)?\s*(?:em\s+)?(\d{1,2})x?(?:\s+vezes)?(?:\s+(?:no\s+)?(.+))?/;
+    const matchParc = texto.match(regexParcelado);
+
+    if (matchParc && (texto.includes('x') || texto.includes('vezes'))) {
+        const [, desc, valorStr, parcelasStr, cartaoNome] = matchParc;
+        const valor = parseFloat(valorStr.replace(',', '.'));
+        const parcelas = parseInt(parcelasStr);
+        if (parcelas > 1 && valor) {
+            const nomeCartao = cartaoNome? cap(cartaoNome) : (cartoes[0]?.nome || 'Cartão');
+            if (!cartoes.length) {
+                addMensagem("Cadastre um cartão primeiro", 'system');
+                return;
+            }
+            parceleiNoCartao(cap(desc.trim()), valor, parcelas, nomeCartao);
+            return;
+        }
+    }
+
+    const valorNum = parseFloat(texto.match(/\d+(?:[.,]\d+)?/)?.[0]?.replace(',', '.'));
+    if (isNaN(valorNum)) {
+        addMensagem("Ex: 'cafe 15' ou 'recebi 500 salario'", 'system');
+        return;
+    }
+
+    const desc = texto.replace(/recebi|gastei|comprei|paguei|vendi|ganhei|no|na|em|conta|\d+(?:[.,]\d+)?|reais?|credito|x|vezes|a\s*vista|avista/gi, '').trim() || 'Lançamento';
+    const id = Date.now();
+
+    dados.push({
+        id: id,
+        descricao: cap(desc),
+        valor: valorNum,
+        tipo: tipo,
+        metodo: metodo,
+        banco: banco,
+        data: new Date().toISOString(),
+        texto: textoOriginal,
+        categoria: identificarCategoria(desc, tipo)
+    });
+    addMensagem(textoOriginal, 'user', `Categoria: ${identificarCategoria(desc, tipo)}`, false, id);
+    salvar();
+    atualizar();
+    console.log('Lançamento criado:', desc, valorNum);
+}
+
+// LIGA ENTER DEPOIS QUE O DOM CARREGA
+document.addEventListener('DOMContentLoaded', function() {
+    const input = document.getElementById('user-input');
+    if (input) {
+        input.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                processarMensagem();
+            }
+        });
+    }
+});
