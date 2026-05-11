@@ -504,18 +504,9 @@ function atualizar() {
         return dt.getMonth() === mes && dt.getFullYear() === ano;
     });
 
-    let ent = dadosMes
-        .filter(d => d.tipo === 'entrada')
-        .reduce((s, d) => s + d.valor, 0);
-
-    let sai = dadosMes
-        .filter(d => d.tipo === 'saida' && d.metodo !== 'cartao')
-        .reduce((s, d) => s + d.valor, 0);
-
-    let fat = dadosMes
-        .filter(d => d.tipo === 'saida' && d.metodo === 'cartao')
-        .reduce((s, d) => s + d.valor, 0);
-
+    let ent = dadosMes.filter(d => d.tipo === 'entrada').reduce((s, d) => s + d.valor, 0);
+    let sai = dadosMes.filter(d => d.tipo === 'saida' && d.metodo !== 'cartao').reduce((s, d) => s + d.valor, 0);
+    let fat = dadosMes.filter(d => d.tipo === 'saida' && d.metodo === 'cartao').reduce((s, d) => s + d.valor, 0);
     let saldo = ent - sai;
     let liquido = saldo - fat;
 
@@ -532,21 +523,36 @@ function atualizar() {
         liquido += futurasEntradas - futurasSaidas;
     }
 
-    document.getElementById('card-entradas').textContent = formatar(ent);
-    document.getElementById('card-saidas').textContent = formatar(sai);
-    document.getElementById('card-saldo').textContent = formatar(saldo);
-    document.getElementById('card-cartoes').textContent = formatar(fat);
-    document.getElementById('card-liquido').textContent = formatar(liquido);
+    // ATUALIZA CARDS COM CHECAGEM DE NULO
+    const elEntradas = document.getElementById('card-entradas');
+    const elSaidas = document.getElementById('card-saidas');
+    const elSaldo = document.getElementById('card-saldo');
+    const elCartoes = document.getElementById('card-cartoes');
+    const elLiquido = document.getElementById('card-liquido');
+
+    if (elEntradas) elEntradas.textContent = formatar(ent);
+    else console.error('card-entradas não encontrado');
+    
+    if (elSaidas) elSaidas.textContent = formatar(sai);
+    else console.error('card-saidas não encontrado');
+    
+    if (elSaldo) elSaldo.textContent = formatar(saldo);
+    else console.error('card-saldo não encontrado');
+    
+    if (elCartoes) elCartoes.textContent = formatar(fat);
+    else console.error('card-cartoes não encontrado');
+    
+    if (elLiquido) elLiquido.textContent = formatar(liquido);
+    else console.error('card-liquido não encontrado');
 
     // CORES DINÂMICAS
-    document.getElementById('card-saldo').className = `val ${saldo >= 0 ? 'text-blue' : 'text-rose'}`;
-    document.getElementById('card-liquido').className = `val big ${liquido >= 0 ? 'text-emerald' : 'text-rose'}`;
-    document.getElementById('card-saidas').className = `val ${sai > ent ? 'text-rose' : 'text-orange'}`;
-    document.getElementById('card-cartoes').className = `val ${fat > saldo ? 'text-rose' : 'text-orange'}`;
+    if (elSaldo) elSaldo.className = `val ${saldo >= 0 ? 'text-blue' : 'text-rose'}`;
+    if (elLiquido) elLiquido.className = `val big ${liquido >= 0 ? 'text-emerald' : 'text-rose'}`;
+    if (elSaidas) elSaidas.className = `val ${sai > ent ? 'text-rose' : 'text-orange'}`;
+    if (elCartoes) elCartoes.className = `val ${fat > saldo ? 'text-rose' : 'text-orange'}`;
 
     aplicarVisualSaldoProjetado();
 }
-
 // LIGA EVENTOS SEMPRE QUE O APP APARECER
 function ligarEventosInput() {
     const input = document.getElementById('user-input');
