@@ -169,12 +169,15 @@
             <button onclick="fecharModal('modal-importar')"><i class="fas fa-times"></i></button>
         </div>
         <div class="modal-body">
-            <p class="modal-hint">Cole o extrato copiado do banco. Formato aceito:</p>
-            <div class="code-example">
-                02/05/2026 PIX RECEBIDO 500,00 C<br>
-                03/05/2026 PAGAMENTO LUZ 150,00 D
+            <div class="import-info">
+                <p>Cole o extrato copiado do banco:</p>
+                <div class="import-format">
+                    <span>Formato aceito:</span>
+                    <code>02/05/2026 PIX RECEBIDO 500,00 C</code>
+                    <code>03/05/2026 PAGAMENTO LUZ 150,00 D</code>
+                </div>
             </div>
-            <textarea id="texto-importacao" placeholder="Cole aqui..."></textarea>
+            <textarea id="texto-importacao" placeholder="Cole aqui o extrato..." rows="8"></textarea>
             
             <div class="modal-actions">
                 <button onclick="fecharModal('modal-importar')" class="btn-cancelar">
@@ -189,6 +192,58 @@
 </div>
 
 <!-- MODAL EXTRATO -->
+<div id="modal-extrato" class="modal">
+    <div class="modal-content extrato-modal">
+        <div class="modal-head">
+            <h3>Extrato</h3>
+            <button onclick="fecharModal('modal-extrato')"><i class="fas fa-times"></i></button>
+        </div>
+        
+        <!-- FILTROS NOVOS -->
+        <div class="extrato-filters">
+            <div class="filter-group">
+                <button id="filter-tipo" onclick="abrirFiltroTipo()" class="filter-btn">
+                    <i class="fas fa-filter"></i>
+                    <span id="filter-tipo-texto">Todos</span>
+                    <i class="fas fa-chevron-down"></i>
+                </button>
+                <div id="filter-tipo-menu" class="filter-dropdown hidden">
+                    <button onclick="aplicarFiltroTipo('')">Todos</button>
+                    <button onclick="aplicarFiltroTipo('entrada')">Entradas</button>
+                    <button onclick="aplicarFiltroTipo('saida')">Saídas</button>
+                    <button onclick="aplicarFiltroTipo('cartao')">Cartão</button>
+                </div>
+            </div>
+            
+            <div class="filter-group">
+                <button id="filter-cat" onclick="abrirFiltroCat()" class="filter-btn">
+                    <i class="fas fa-tag"></i>
+                    <span id="filter-cat-texto">Todas categorias</span>
+                    <i class="fas fa-chevron-down"></i>
+                </button>
+                <div id="filter-cat-menu" class="filter-dropdown hidden"></div>
+            </div>
+        </div>
+
+        <!-- RESUMO DO MÊS NO TOPO -->
+        <div id="extrato-resumo" class="extrato-resumo">
+            <div class="resumo-item">
+                <span>Entradas</span>
+                <strong id="resumo-entradas" class="text-emerald">R$ 0,00</strong>
+            </div>
+            <div class="resumo-item">
+                <span>Saídas</span>
+                <strong id="resumo-saidas" class="text-rose">R$ 0,00</strong>
+            </div>
+            <div class="resumo-item">
+                <span>Saldo</span>
+                <strong id="resumo-saldo" class="text-blue">R$ 0,00</strong>
+            </div>
+        </div>
+
+        <div id="lista-extrato" class="extrato-lista"></div>
+    </div>
+</div>
 <div id="modal-extrato" class="modal">
     <div class="modal-content full">
         <div class="modal-head">
