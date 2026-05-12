@@ -277,7 +277,6 @@ function executarImportacao() {
     linhas.forEach((linha) => {
         if (!linha.trim()) return;
 
-        // Regex melhorada para pegar valores como 1.250,00 ou 50.00
         const matchValor = linha.match(/(\d{1,3}(\.\d{3})*,\d{2})|(\d+\.\d{2})|(\d+,\d{2})|(\d+)/);
         
         if (matchValor) {
@@ -285,32 +284,37 @@ function executarImportacao() {
             let valorNum = Math.abs(parseFloat(valorTexto));
             
             if (!isNaN(valorNum) && valorNum > 0) {
-                // Identifica se é entrada ou saída por palavras-chave na linha
                 const ehEntrada = linha.toLowerCase().match(/recebi|vendi|ganhei|salario|pix recebido|deposito|estorno/);
                 const tipoFinal = ehEntrada ? 'entrada' : 'saida';
-                
                 const desc = linha.replace(matchValor[0], '').replace(/R\$/g, '').trim() || 'Lançamento Importado';
 
-               // Dentro do loop da função executarImportacao, substitua a criação do objeto:
-dados.push({
-    id: Date.now() + Math.random(),
-    descricao: cap(desc),
-    valor: valorNum,
-    tipo: tipoFinal,
-    metodo: 'conta',
-    banco: contas[0]?.nome || 'Principal',
-    // ESTA LINHA GARANTE QUE CAIA NO MÊS QUE VOCÊ ESTÁ VENDO:
-    data: new Date(mesAtual.getFullYear(), mesAtual.getMonth(), new Date().getDate()).toISOString(), 
-    categoria: identificarCategoria(desc, tipoFinal)
-});
-   if (importadas > 0) {
-        salvar();      // Grava no localStorage
-        atualizar();   // Recalcula totais e redesenha cards
-        atualizarMes(); // Garante que a navegação de data esteja certa
+                dados.push({
+                    id: Date.now() + Math.random(),
+                    descricao: cap(desc),
+                    valor: valorNum,
+                    tipo: tipoFinal,
+                    metodo: 'conta',
+                    banco: contas[0]?.nome || 'Principal',
+                    data: new Date(mesAtual.getFullYear(), mesAtual.getMonth(), new Date().getDate()).toISOString(), 
+                    categoria: identificarCategoria(desc, tipoFinal)
+                });
+                importadas++; // Faltava isso para o contador funcionar
+            }
+        }
+    }); // Fecha o forEach
+
+    if (importadas > 0) {
+        salvar();
+        atualizar();
+        atualizarMes();
         fecharModal('modal-importar');
-        textarea.value = "";
+        if (textarea) textarea.value = "";
         addMensagem(`${importadas} transações importadas!`, 'system');
+    } else {
+        addMensagem('Nenhum valor reconhecido no texto.', 'system');
     }
+} // Fecha a função executarImportacao
+
 // Corrigindo a leitura do arquivo para bater com o ID do HTML
 function lerArquivoExtrato(event) {
     const file = event.target.files[0];
@@ -413,6 +417,10 @@ function importarCSV(texto) {
 }
 
 function atualizar() {
+    onsole.log("Dados totais:", dados.length); // Verifique isso no console do navegador (F12)
+    const mes = mesAtual.getMonth();
+    const ano = mesAtual.getFullYear();
+    // ... restante do código
     const mes = mesAtual.getMonth();
     const ano = mesAtual.getFullYear();
     let dadosMes = dados.filter(d => {
@@ -466,6 +474,7 @@ function atualizar() {
     if (elCartoes) elCartoes.className = `val ${fat > saldo? 'text-rose' : 'text-orange'}`;
     aplicarVisualSaldoProjetado();
 }
+
 
 function ligarEventosInput() {
     const input = document.getElementById('user-input');
