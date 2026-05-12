@@ -258,88 +258,57 @@ function processarMensagem() {
 }
 
 function executarImportacao() {
-    const texto = document.getElementById('texto-importacao').value.trim();
+    const campoTexto = document.getElementById('texto-importacao');
+    const texto = campoTexto ? campoTexto.value.trim() : "";
+    
     if (!texto) {
-        addMensagem('Cole o extrato primeiro', 'system');
+        addMensagem('Cole o extrato ou texto primeiro', 'system');
         return;
     }
+
     const linhas = texto.split('\n');
     let importadas = 0;
-    let erros = 0;
-    linhas.forEach((linha, idx) => {
-        linha = linha.trim();
-        if (!linha || linha.toUpperCase().includes('DATA') || linha.toUpperCase().includes('LANÇAMENTO') || linha.toUpperCase().includes('SALDO')) return;
-        let data, desc, valor, tipo;
-        let match = null;
-        match = linha.match(/^(\d{2}-\d{4})\s+(.+?)\s+([\d.,]+)\s+\d{10,}$/);
-        if (match) {
-            [, data, desc, valor] = match;
-            data = data.replace(/-/g, '/');
-            tipo = desc.toLowerCase().match(/rendimento|receb|depós|créd|estorno|pix receb/)? 'C' : 'D';
-        }
-        if (!match) {
-            match = linha.match(/^(\d{2}\/\d{2}\/\d{4})\s+(.+?)\s+([\d.,]+)\s*([CD])?$/i);
-            if (match) [, data, desc, valor, tipo] = match;
-        }
-        if (!match) {
-            match = linha.match(/^(\d{2}\/\d{2}\/\d{4})\s+(.+?)\s*([+-])\s*R?\$?\s*([\d.,]+)$/i);
-            if (match) [, data, desc, tipo, valor] = match;
-        }
-        if (!match) {
-            match = linha.match(/^(\d{2}\/\d{2})\s+(.+?)\s+([\d.,]+)([+-])$/i);
-            if (match) {
-                [, data, desc, valor, tipo] = match;
-                data += '/' + new Date().getFullYear();
-            }
-        }
-        if (!match) {
-            match = linha.match(/^(\d{2}\/\d{2}\/\d{2,4})\s+(.+?)\s+([\d.,]+)$/i);
-            if (match) {
-                [, data, desc, valor] = match;
-                tipo = desc.toLowerCase().match(/receb|depós|créd|estorno|salár|rendimento/)? 'C' : 'D';
-            }
-        }
-        if (match && valor) {
-            try {
-                let partesData = data.split('/');
-                let dia = partesData[0];
-                let mes = partesData[1];
-                let ano = partesData[2];
-                if (ano.length === 2) ano = '20' + ano;
-                const dataISO = new Date(ano, mes - 1, dia).toISOString();
-                const valorNum = parseFloat(valor.replace(/\./g, '').replace(',', '.'));
-                if (isNaN(valorNum) || valorNum === 0) return;
-                const tipoFinal = (tipo?.toUpperCase() === 'C' || tipo === '+')? 'entrada' : 'saida';
-                desc = desc.trim().replace(/\s+\d{10,}$/, '').replace(/\s+/g, ' ');
-                const id = Date.now() + Math.random() + idx;
+
+    linhas.forEach((linha) => {
+        if (!linha.trim()) return;
+        
+        // Tenta encontrar um valor numérico na linha (ex: 15,00 ou 15.00)
+        const matchValor = linha.match(/(\d{1,3}(\.\d{3})*,\d{2})|(\d+\.\d{2})|(\d+,\d{2})|(\d+)/);
+        
+        if (matchValor) {
+            let valorTexto = matchValor[0].replace(/\./g, '').replace(',', '.');
+            let valorNum = Math.abs(parseFloat(valorTexto));
+            
+            if (!isNaN(valorNum) && valorNum !== 0) {
+                // Se a linha tiver "recebi", "vendi" ou "ganhei", é entrada. Senão, saída.
+                const tipoFinal = linha.toLowerCase().match(/recebi|vendi|ganhei|salario|pix recebido/) ? 'entrada' : 'saida';
+                const desc = linha.replace(matchValor[0], '').trim() || 'Importado';
+
                 dados.push({
-                    id: id,
+                    id: Date.now() + Math.random(),
                     descricao: cap(desc),
                     valor: valorNum,
                     tipo: tipoFinal,
                     metodo: 'conta',
                     banco: contas[0]?.nome || 'Principal',
-                    data: dataISO,
-                    texto: linha,
+                    data: new Date().toISOString(),
                     categoria: identificarCategoria(desc, tipoFinal)
                 });
                 importadas++;
-            } catch (e) {
-                erros++;
             }
         }
     });
+
     if (importadas > 0) {
         salvar();
         atualizar();
         fecharModal('modal-importar');
-        addMensagem(`${importadas} transações importadas`, 'system');
-        if (erros > 0) addMensagem(`${erros} linhas ignoradas`, 'system');
+        if (campoTexto) campoTexto.value = "";
+        addMensagem(`${importadas} transações importadas com sucesso!`, 'system');
     } else {
-        addMensagem('Nenhuma transação com valor encontrada', 'system');
+        addMensagem('Não identifiquei valores no texto colado.', 'system');
     }
 }
-
 // Corrigindo a leitura do arquivo para bater com o ID do HTML
 function lerArquivoExtrato(event) {
     const file = event.target.files[0];
@@ -1138,14 +1107,12 @@ function resetarApp() {
 }
 
 function toggleProjetado() {
-    config.projetarSaldo =!config.projetarSaldo;
+    config.projetarSaldo = !config.projetarSaldo;
     salvar();
-    aplicarVisualSaldoProjetado();
     atualizar();
-    toggleMenu();
-    addMensagem(`Projeção ${config.projetarSaldo? 'ativada' : 'desativada'}`, 'system');
+    addMensagem(config.projetarSaldo ? "Projeção de saldo ativada" : "Projeção desativada", 'system');
+    toggleMenu(); // Fecha o menu
 }
-
 function aplicarVisualSaldoProjetado() {
     const btn = document.getElementById('btnProjetado');
     if (!btn) return;
@@ -1163,12 +1130,17 @@ function editarContaCartao(tipo, idx) {
 }
 
 function abrirExtrato(tipo) {
-    if (tipo === 'entrada') document.getElementById('filtro-tipo').value = 'entrada';
-    if (tipo === 'saida') document.getElementById('filtro-tipo').value = 'saida';
-    if (tipo === 'cartao') document.getElementById('filtro-tipo').value = 'cartao';
-    if (tipo === 'saldo') document.getElementById('filtro-tipo').value = '';
     abrirModal('modal-extrato');
-    filtrarExtrato();
+    const filtro = document.getElementById('filtro-tipo');
+    if (filtro) {
+        // Se clicar em "Saldo" ou "Saldo Final", mostra tudo
+        if (tipo === 'saldo') {
+            filtro.value = ""; 
+        } else {
+            filtro.value = tipo;
+        }
+        filtrarExtrato();
+    }
 }
 
 // LIGA TUDO QUANDO O DOM CARREGAR
