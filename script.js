@@ -815,9 +815,9 @@ function desenharGrafico() {
 
     const ctx = canvas.getContext('2d');
 
-    // =========================
+
     // GRÁFICO POR CATEGORIA
-    // =========================
+
 
     if (tipoGraficoAtivo === 'categoria') {
 
