@@ -417,10 +417,9 @@ function importarCSV(texto) {
 }
 
 function atualizar() {
-    onsole.log("Dados totais:", dados.length); // Verifique isso no console do navegador (F12)
+    console.log("Dados totais:", dados.length); // Verifique isso no console do navegador (F12)
     const mes = mesAtual.getMonth();
     const ano = mesAtual.getFullYear();
-    // ... restante do código
     const mes = mesAtual.getMonth();
     const ano = mesAtual.getFullYear();
     let dadosMes = dados.filter(d => {
