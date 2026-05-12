@@ -369,67 +369,71 @@ function lerArquivoExtrato(event) {
 }
 
 function importarCSV(texto) {
-    console.log('CSV recebido:', texto.substring(0, 300));
-    addMensagem('Processando CSV...', 'system');
     const linhas = texto.split('\n');
     let importadas = 0;
     let erros = 0;
-    if (linhas.length < 2) {
-        addMensagem('CSV vazio ou sem dados', 'system');
-        return;
-    }
-    const primeiraLinha = linhas[0];
-    const separador = primeiraLinha.includes(';')? ';' : ',';
+
+    if (linhas.length < 2) return addMensagem('CSV vazio', 'system');
+
+    // Detecta se o separador é vírgula ou ponto-e-vírgula
+    const separador = linhas[0].includes(';') ? ';' : ',';
+
     linhas.forEach((linha, idx) => {
-        if (idx === 0 ||!linha.trim()) return;
+        // Pula cabeçalho ou linhas vazias
+        if (idx === 0 || !linha.trim()) return;
+
         const cols = linha.split(separador).map(c => c.trim().replace(/^"|"$/g, ''));
-        if (cols.length < 3) { erros++; return; }
+        
         try {
-            let data = cols[0];
+            // Tenta identificar qual coluna é o valor (geralmente contém números e vírgula)
+            // Aqui assumimos o padrão comum: 0: Data, 1: Descrição, 2: Valor
+            let dataRaw = cols[0];
             let desc = cols[1];
-            let valor = cols[2];
-            let tipo = cols[3] || null;
-            data = data.replace(/-/g, '/');
-            let partesData = data.split('/');
-            if (partesData.length!== 3) { erros++; return; }
-            if (partesData[2].length === 2) partesData[2] = '20' + partesData[2];
-            const dataISO = new Date(partesData[2], partesData[1] - 1, partesData[0]).toISOString();
-            if (isNaN(new Date(dataISO).getTime())) { erros++; return; }
-            valor = parseFloat(valor.replace(/R\$\s?/g, '').replace(/\./g, '').replace(',', '.'));
-            if (isNaN(valor)) { erros++; return; }
-            let tipoFinal = 'saida';
-            if (tipo) {
-                tipoFinal = tipo.toUpperCase().match(/C|CRÉD|CRED|\+|RECEB/)? 'entrada' : 'saida';
-            } else {
-                tipoFinal = valor > 0? 'entrada' : 'saida';
-                valor = Math.abs(valor);
+            let valorRaw = cols[2];
+
+            if (!dataRaw || !valorRaw) { erros++; return; }
+
+            // Trata Data (aceita DD/MM/AAAA ou AAAA-MM-DD)
+            const partes = dataRaw.replace(/-/g, '/').split('/');
+            let dataISO;
+            if (partes[0].length === 4) { // Formato internacional
+                dataISO = new Date(partes[0], partes[1] - 1, partes[2]).toISOString();
+            } else { // Formato brasileiro
+                const ano = partes[2].length === 2 ? '20' + partes[2] : partes[2];
+                dataISO = new Date(ano, partes[1] - 1, partes[0]).toISOString();
             }
-            const id = Date.now() + Math.random() + idx;
+
+            // Trata Valor (remove R$, troca vírgula por ponto)
+            let valor = parseFloat(valorRaw.replace(/[R$\s]/g, '').replace(/\./g, '').replace(',', '.'));
+            
+            if (isNaN(valor)) { erros++; return; }
+
+            const tipoFinal = valor > 0 ? 'entrada' : 'saida';
+            const valorAbs = Math.abs(valor);
+
             dados.push({
-                id: id,
-                descricao: cap(desc),
-                valor: valor,
+                id: Date.now() + Math.random(),
+                descricao: cap(desc) || 'Importado CSV',
+                valor: valorAbs,
                 tipo: tipoFinal,
                 metodo: 'conta',
                 banco: contas[0]?.nome || 'Principal',
                 data: dataISO,
-                texto: linha,
                 categoria: identificarCategoria(desc, tipoFinal)
             });
             importadas++;
         } catch (e) {
-            console.error('Erro linha:', idx, e);
             erros++;
         }
     });
+
     if (importadas > 0) {
         salvar();
         atualizar();
         fecharModal('modal-importar');
-        addMensagem(`${importadas} transações importadas do CSV`, 'system');
-        if (erros > 0) addMensagem(`${erros} linhas com erro`, 'system');
+        addMensagem(`${importadas} transações importadas!`, 'system');
     } else {
-        addMensagem('Nenhuma transação válida no CSV', 'system');
+        addMensagem('Não foi possível ler os valores do CSV.', 'system');
     }
 }
 
