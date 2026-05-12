@@ -30,16 +30,16 @@ const cap = s => s? s.charAt(0).toUpperCase() + s.slice(1) : '';
 
 const CATEGORIAS = {
     entrada: {
-        'Salário': ['salario','pagamento','freela'],
-        'Vendas': ['venda','vendi','mercado','olx'],
+        'Salário': ['salario', 'pagamento', 'freela'],
+        'Vendas': ['venda', 'vendi', 'mercado', 'olx'],
         'Outras Receitas': []
     },
     saida: {
-        'Alimentação': ['ifood','mercado','restaurante','cafe','lanche','pizza'],
-        'Transporte': ['uber','99','gasolina','posto'],
-        'Moradia': ['aluguel','luz','agua','internet'],
-        'Lazer': ['cinema','netflix','spotify','bar'],
-        'Compras': ['shopee','amazon','roupa','tenis'],
+        'Alimentação': ['ifood', 'mercado', 'restaurante', 'cafe', 'lanche', 'pizza'],
+        'Transporte': ['uber', '99', 'gasolina', 'posto'],
+        'Moradia': ['aluguel', 'luz', 'agua', 'internet'],
+        'Lazer': ['cinema', 'netflix', 'spotify', 'bar'],
+        'Compras': ['shopee', 'amazon', 'roupa', 'tenis'],
         'Outras Despesas': []
     }
 };
@@ -52,13 +52,18 @@ function salvar() {
 }
 
 function identificarCategoria(desc, tipo = 'saida') {
-    if (!desc) return tipo === 'entrada'? 'Outras Receitas' : 'Outras Despesas';
+    if (!desc) return tipo === 'entrada' ? 'Outras Receitas' : 'Outras Despesas';
     const d = desc.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-    const categorias = CATEGORIAS;
-    for (const [categoria, palavras] of Object.entries(categorias)) {
-        if (palavras.some(p => d.includes(p))) return categoria;
+    
+    // Pega as categorias baseadas no tipo (entrada ou saida)
+    const categoriasDoTipo = CATEGORIAS[tipo]; 
+
+    for (const [categoria, palavras] of Object.entries(categoriasDoTipo)) {
+        if (Array.isArray(palavras) && palavras.some(p => d.includes(p))) {
+            return categoria;
+        }
     }
-    return tipo === 'entrada'? 'Outras Receitas' : 'Outras Despesas';
+    return tipo === 'entrada' ? 'Outras Receitas' : 'Outras Despesas';
 }
 
 function initPin() {
@@ -258,11 +263,11 @@ function processarMensagem() {
 }
 
 function executarImportacao() {
-    const campoTexto = document.getElementById('texto-importacao');
-    const texto = campoTexto ? campoTexto.value.trim() : "";
+    const textarea = document.getElementById('texto-importacao');
+    const texto = textarea ? textarea.value.trim() : "";
     
     if (!texto) {
-        addMensagem('Cole o extrato ou texto primeiro', 'system');
+        addMensagem('Cole o extrato primeiro', 'system');
         return;
     }
 
@@ -271,18 +276,20 @@ function executarImportacao() {
 
     linhas.forEach((linha) => {
         if (!linha.trim()) return;
-        
-        // Tenta encontrar um valor numérico na linha (ex: 15,00 ou 15.00)
+
+        // Regex melhorada para pegar valores como 1.250,00 ou 50.00
         const matchValor = linha.match(/(\d{1,3}(\.\d{3})*,\d{2})|(\d+\.\d{2})|(\d+,\d{2})|(\d+)/);
         
         if (matchValor) {
             let valorTexto = matchValor[0].replace(/\./g, '').replace(',', '.');
             let valorNum = Math.abs(parseFloat(valorTexto));
             
-            if (!isNaN(valorNum) && valorNum !== 0) {
-                // Se a linha tiver "recebi", "vendi" ou "ganhei", é entrada. Senão, saída.
-                const tipoFinal = linha.toLowerCase().match(/recebi|vendi|ganhei|salario|pix recebido/) ? 'entrada' : 'saida';
-                const desc = linha.replace(matchValor[0], '').trim() || 'Importado';
+            if (!isNaN(valorNum) && valorNum > 0) {
+                // Identifica se é entrada ou saída por palavras-chave na linha
+                const ehEntrada = linha.toLowerCase().match(/recebi|vendi|ganhei|salario|pix recebido|deposito|estorno/);
+                const tipoFinal = ehEntrada ? 'entrada' : 'saida';
+                
+                const desc = linha.replace(matchValor[0], '').replace(/R\$/g, '').trim() || 'Lançamento Importado';
 
                 dados.push({
                     id: Date.now() + Math.random(),
@@ -303,12 +310,13 @@ function executarImportacao() {
         salvar();
         atualizar();
         fecharModal('modal-importar');
-        if (campoTexto) campoTexto.value = "";
-        addMensagem(`${importadas} transações importadas com sucesso!`, 'system');
+        textarea.value = "";
+        addMensagem(`${importadas} transações importadas!`, 'system');
     } else {
-        addMensagem('Não identifiquei valores no texto colado.', 'system');
+        addMensagem('Nenhum valor reconhecido no texto.', 'system');
     }
 }
+
 // Corrigindo a leitura do arquivo para bater com o ID do HTML
 function lerArquivoExtrato(event) {
     const file = event.target.files[0];
