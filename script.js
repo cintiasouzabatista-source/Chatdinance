@@ -665,59 +665,591 @@ function trocarGrafico(tipo) {
 }
 
 function desenharGrafico() {
+    const canvas = document.getElementById('grafico-canvas');
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+
+    // Destrói gráfico anterior se existir
+    if (window.graficoAtual) {
+        window.graficoAtual.destroy();
+    }
+
+    const transacoes = filtrarPorMes(dados.transacoes);
+    const tipoGrafico = estado.graficoTipo || 'categoria';
+
+    let labels = [];
+    let valores = [];
+    let cores = [];
+
+    if (tipoGrafico === 'categoria') {
+        // Agrupa por categoria - só saídas
+        const saidas = transacoes.filter(t => t.tipo === 'saida');
+        const porCategoria = {};
+
+        saidas.forEach(t => {
+            const cat = t.categoria || 'Outros';
+            porCategoria[cat] = (porCategoria[cat] || 0) + t.valor;
+        });
+
+        labels = Object.keys(porCategoria);
+        valores = Object.values(porCategoria);
+        cores = [
+            '#ef4444', '#f97316', '#f59e0b', '#eab308', '#84cc16',
+            '#22c55e', '#10b981', '#14b8a6', '#06b6d4', '#0ea5e9',
+            '#3b82f6', '#6366f1', '#8b5cf6', '#a855f7', '#d946ef'
+        ];
+
+        document.getElementById('btn-cat').classList.add('tab-active');
+        document.getElementById('btn-tipo').classList.remove('tab-active');
+
+    } else if (tipoGrafico === 'tipo') {
+        // Entrada vs Saída
+        const entradas = transacoes.filter(t => t.tipo === 'entrada')
+           .reduce((s, t) => s + t.valor, 0);
+        const saidas = transacoes.filter(t => t.tipo === 'saida')
+           .reduce((s, t) => s + t.valor, 0);
+
+        labels = ['Entradas', 'Saídas'];
+        valores = [entradas, saidas];
+        cores = ['#10b981', '#f97316'];
+
+        document.getElementById('btn-tipo').classList.add('tab-active');
+        document.getElementById('btn-cat').classList.remove('tab-active');
+    }
+
+    // Se não tem dados
+    if (valores.length === 0 || valores.every(v => v === 0)) {
+        ctx.font = '14px sans-serif';
+        ctx.fillStyle = '#64748b';
+        ctx.textAlign = 'center';
+        ctx.fillText('Sem dados para exibir', canvas.width / 2, canvas.height / 2);
+        return;
+    }
+
+    // Cria o gráfico
+    window.graficoAtual = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: valores,
+                backgroundColor: cores.slice(0, labels.length),
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const label = context.label || '';
+                            const value = context.parsed || 0;
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const pct = ((value / total) * 100).toFixed(1);
+                            return `${label}: ${formatar(value)} (${pct}%)`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    // Monta legenda manual
+    montarLegenda(labels, valores, cores);
+}
+
+function montarLegenda(labels, valores, cores) {
+    const legenda = document.getElementById('grafico-legenda');
+    const total = valores.reduce((a, b) => a + b, 0);
+
+    legenda.innerHTML = labels.map((label, i) => {
+        const pct = ((valores[i] / total) * 100).toFixed(1);
+        return `
+            <div class="legenda-item">
+                <span class="legenda-cor" style="background:${cores[i]}"></span>
+                <span class="legenda-texto">${label}</span>
+                <span class="legenda-valor">${formatar(valores[i])} <small>${pct}%</small></span>
+            </div>
+        `;
+    }).join('');
+}
+
+function trocarGrafico(tipo) {
+    tipoGraficoAtivo = tipo;
+    const btnCat = document.getElementById('btn-cat');
+    const btnTipo = document.getElementById('btn-tipo');
+    if (btnCat) btnCat.className = tipo === 'categoria'
+  ? 'flex-1 bg-blue-600 text-white py-2 rounded-lg text-sm font-bold'
+    : 'flex-1 bg-slate-700 text-slate-300 py-2 rounded-lg text-sm font-bold';
+    if (btnTipo) btnTipo.className = tipo === 'tipo'
+  ? 'flex-1 bg-blue-600 text-white py-2 rounded-lg text-sm font-bold'
+    : 'flex-1 bg-slate-700 text-slate-300 py-2 rounded-lg text-sm font-bold';
+    desenharGrafico();
+}
+
+function desenharGrafico() {
     const mes = mesAtual.getMonth();
     const ano = mesAtual.getFullYear();
+
     const transacoesMes = dados.filter(t => {
         const dt = new Date(t.data);
         return dt.getMonth() === mes && dt.getFullYear() === ano;
     });
-    if (chartInstance) chartInstance.destroy();
+
+    if (chartInstance) {
+        chartInstance.destroy();
+    }
+
     const canvas = document.getElementById('grafico-canvas');
     if (!canvas) return;
+
     const ctx = canvas.getContext('2d');
+
+    // =========================
+    // GRÁFICO POR CATEGORIA
+    // =========================
+
     if (tipoGraficoAtivo === 'categoria') {
+
         const gastosPorCat = {};
-        transacoesMes.filter(t => t.tipo!== 'entrada').forEach(t => {
-            gastosPorCat[t.categoria] = (gastosPorCat[t.categoria] || 0) + t.valor;
-        });
-        const dadosGraf = Object.entries(gastosPorCat).sort((a, b) => b[1] - a[1]).slice(0, 8);
+
+        transacoesMes
+            .filter(t => t.tipo !== 'entrada')
+            .forEach(t => {
+                gastosPorCat[t.categoria] =
+                    (gastosPorCat[t.categoria] || 0) + t.valor;
+            });
+
+        const dadosGraf = Object.entries(gastosPorCat)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 8);
+
         const elLegenda = document.getElementById('grafico-legenda');
+
         if (dadosGraf.length === 0) {
-            if (elLegenda) elLegenda.innerHTML = '<p class="text-center text-slate-500 py-8">Sem gastos no mês</p>';
+            if (elLegenda) {
+                elLegenda.innerHTML = `
+                    <p class="text-center text-slate-500 py-8">
+                        Sem gastos no mês
+                    </p>
+                `;
+            }
             return;
         }
+
         const labels = dadosGraf.map(d => d[0]);
         const valores = dadosGraf.map(d => d[1]);
         const total = valores.reduce((s, v) => s + v, 0);
+
         chartInstance = new Chart(ctx, {
             type: 'bar',
-            data: { labels, datasets: [{ data: valores, backgroundColor: '#3b82f6', borderRadius: 8, barThickness: 18 }] },
-            options: { responsive: true, maintainAspectRatio: false, indexAxis: 'y', plugins: { legend: { display: false }, tooltip: { backgroundColor: '#0f172a', titleColor: '#fff', bodyColor: '#cbd5e1', borderColor: '#334155', borderWidth: 1, padding: 12, displayColors: false, callbacks: { label: (ctx) => { const pct = ((ctx.raw / total) * 100).toFixed(1); return [`Valor: R$ ${ctx.raw.toFixed(2).replace('.', ',')}`, `Participação: ${pct}%`]; } } } }, scales: { x: { beginAtZero: true } } }
+            data: {
+                labels,
+                datasets: [{
+                    data: valores,
+                    backgroundColor: '#3b82f6',
+                    borderRadius: 8,
+                    barThickness: 18
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                indexAxis: 'y',
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        backgroundColor: '#0f172a',
+                        titleColor: '#fff',
+                        bodyColor: '#cbd5e1',
+                        borderColor: '#334155',
+                        borderWidth: 1,
+                        padding: 12,
+                        displayColors: false,
+                        callbacks: {
+                            label: (ctx) => {
+                                const pct = ((ctx.raw / total) * 100).toFixed(1);
+
+                                return [
+                                    `Valor: R$ ${ctx.raw.toFixed(2).replace('.', ',')}`,
+                                    `Participação: ${pct}%`
+                                ];
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        beginAtZero: true
+                    }
+                }
+            }
         });
+
         if (elLegenda) {
             elLegenda.innerHTML = dadosGraf.map(([cat, val]) => {
                 const pct = ((val / total) * 100).toFixed(1);
-                return `<div class="flex justify-between text-xs py-1"><span>${cat}</span><span class="font-bold">R$ ${val.toFixed(2).replace('.', ',')} - ${pct}%</span></div>`;
+
+                return `
+                    <div class="flex justify-between text-xs py-1">
+                        <span>${cat}</span>
+                        <span class="font-bold">
+                            R$ ${val.toFixed(2).replace('.', ',')} - ${pct}%
+                        </span>
+                    </div>
+                `;
             }).join('');
         }
-    } else {
-        let entrada = 0, saida = 0, cartao = 0;
+
+    }
+
+    // =========================
+    // GRÁFICO POR TIPO
+    // =========================
+
+    else {
+
+        let entrada = 0;
+        let saida = 0;
+        let cartao = 0;
+
         transacoesMes.forEach(t => {
-            if (t.tipo === 'entrada') entrada += t.valor;
-            else if (t.metodo === 'cartao') cartao += t.valor;
-            else saida += t.valor;
+            if (t.tipo === 'entrada') {
+                entrada += t.valor;
+            }
+            else if (t.metodo === 'cartao') {
+                cartao += t.valor;
+            }
+            else {
+                saida += t.valor;
+            }
         });
+
         const valores = [entrada, saida, cartao];
         const total = valores.reduce((s, v) => s + v, 0);
+
         const elLegenda = document.getElementById('grafico-legenda');
+
         if (total === 0) {
-            if (elLegenda) elLegenda.innerHTML = '<p class="text-center text-slate-500 py-8">Sem dados no mês</p>';
+            if (elLegenda) {
+                elLegenda.innerHTML = `
+                    <p class="text-center text-slate-500 py-8">
+                        Sem dados no mês
+                    </p>
+                `;
+            }
             return;
         }
+
         chartInstance = new Chart(ctx, {
             type: 'doughnut',
-            data: { labels: ['Entradas', 'Saídas', 'Cartões'], datasets: [{ data: valores, backgroundColor: ['#10b981', '#f97316', '#ef4444'], borderWidth: 0 }] },
-            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+            data: {
+                labels: ['Entradas', 'Saídas', 'Cartões'],
+                datasets: [{
+                    data: valores,
+                    backgroundColor: [
+                        '#10b981',
+                        '#f97316',
+                        '#ef4444'
+                    ],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                }
+            }
         });
-        const dadosLegenda = [{ label: 'Entradas', valor: entrada, cor: '#10b981' }, { label: 'Saídas', valor: saida, cor: '#f97316' }, { label: 'Cartões', valor: cartao, cor: '#ef4444' }].filter(d => d.valor > 0);
-        if
+
+        const dadosLegenda = [
+            { label: 'Entradas', valor: entrada, cor: '#10b981' },
+            { label: 'Saídas', valor: saida, cor: '#f97316' },
+            { label: 'Cartões', valor: cartao, cor: '#ef4444' }
+        ].filter(d => d.valor > 0);
+
+        if (elLegenda) {
+            elLegenda.innerHTML = dadosLegenda.map(d => {
+
+                const pct = ((d.valor / total) * 100).toFixed(1);
+
+                return `
+                    <div class="flex justify-between items-center text-xs py-1">
+                        <div class="flex items-center gap-2">
+                            <div
+                                class="w-3 h-3 rounded"
+                                style="background:${d.cor}"
+                            ></div>
+                            <span>${d.label}</span>
+                        </div>
+
+                        <span class="font-bold">
+                            R$ ${d.valor.toFixed(2).replace('.', ',')} - ${pct}%
+                        </span>
+                    </div>
+                `;
+
+            }).join('');
+        }
+    }
+}
+
+
+
+function renderizarListaTemp() {
+    const listaContas = document.getElementById('lista-contas-temp');
+    const listaCartoes = document.getElementById('lista-cartoes-temp');
+    if (!listaContas ||!listaCartoes) return;
+    listaContas.innerHTML = tempContas.map((c, i) => `
+        <div class="item-temp">
+            <span>${c.nome} - ${formatar(c.saldoInicial || 0)}</span>
+            <button onclick="removerTempConta(${i})"><i class="fas fa-times"></i></button>
+        </div>
+    `).join('');
+    listaCartoes.innerHTML = tempCartoes.map((c, i) => `
+        <div class="item-temp">
+            <span>${c.nome} - Fecha ${c.diaFechamento} | Vence ${c.diaVencimento}</span>
+            <button onclick="removerTempCartao(${i})"><i class="fas fa-times"></i></button>
+        </div>
+    `).join('');
+}
+
+function addTempConta() {
+    const nome = document.getElementById('conta-nome').value.trim();
+    const saldo = parseFloat(document.getElementById('conta-saldo').value) || 0;
+    if (!nome) return alert("Digite o nome da conta");
+    tempContas.push({nome, saldoInicial: saldo});
+    document.getElementById('conta-nome').value = '';
+    document.getElementById('conta-saldo').value = '';
+    renderizarListaTemp();
+}
+
+function addTempCartao() {
+    const nome = document.getElementById('cartao-nome').value.trim();
+    const diaFech = parseInt(document.getElementById('cartao-fechamento').value) || 2;
+    const diaVenc = parseInt(document.getElementById('cartao-vencimento').value) || 7;
+    if (!nome) return alert("Digite o nome do cartão");
+    tempCartoes.push({nome, diaFechamento: diaFech, diaVencimento: diaVenc});
+    document.getElementById('cartao-nome').value = '';
+    document.getElementById('cartao-fechamento').value = '';
+    document.getElementById('cartao-vencimento').value = '';
+    renderizarListaTemp();
+}
+
+function removerTempConta(i) { tempContas.splice(i, 1); renderizarListaTemp(); }
+function removerTempCartao(i) { tempCartoes.splice(i, 1); renderizarListaTemp(); }
+
+function finalizarCadastro() {
+    if (!tempContas.length) return alert("Cadastre pelo menos 1 conta");
+    contas = [...tempContas];
+    cartoes = [...tempCartoes];
+    contas.forEach(c => {
+        if (c.saldoInicial &&!dados.some(d => d.isSaldoInicial && d.banco === c.nome)) {
+            dados.push({
+                id: Date.now() + Math.random(),
+                descricao: "Saldo inicial",
+                valor: c.saldoInicial,
+                tipo: "entrada",
+                metodo: "conta",
+                banco: c.nome,
+                data: new Date().toISOString(),
+                isSaldoInicial: true,
+                categoria: 'Outras Receitas'
+            });
+        }
+    });
+    salvar();
+    fecharModal('modal-contas');
+    atualizar();
+    addMensagem(`Configuração salva: ${contas.length} contas e ${cartoes.length} cartões`, 'system');
+}
+
+function abrirModalEditar(id) {
+    editandoId = id;
+    const t = dados.find(d => d.id === id);
+    if (!t) return;
+    document.getElementById('edit-desc').value = t.descricao;
+    document.getElementById('edit-valor').value = t.valor;
+    document.getElementById('edit-tipo').value = t.tipo;
+    document.getElementById('edit-metodo').value = t.metodo;
+    document.getElementById('edit-data').value = new Date(t.data).toISOString().split('T')[0];
+
+    atualizarContasModal();
+    atualizarCategorias();
+
+    document.getElementById('edit-banco').value = t.banco;
+    document.getElementById('edit-categoria').value = t.categoria;
+    abrirModal('modal-editar');
+}
+
+function atualizarContasModal() {
+    const metodo = document.getElementById('edit-metodo').value;
+    const selectBanco = document.getElementById('edit-banco');
+    selectBanco.innerHTML = '';
+    const lista = metodo === 'cartao'? cartoes : contas;
+    lista.forEach(item => {
+        const opt = document.createElement('option');
+        opt.value = item.nome;
+        opt.textContent = item.nome;
+        selectBanco.appendChild(opt);
+    });
+}
+
+function atualizarCategorias() {
+    const tipo = document.getElementById('edit-tipo').value;
+    const selectCat = document.getElementById('edit-categoria');
+    selectCat.innerHTML = '';
+  const catsDoTipo = CATEGORIAS[tipo] || CATEGORIAS['saida'];
+    Object.keys(catsDoTipo).forEach(cat => {
+        const opt = document.createElement('option');
+        opt.value = cat;
+        opt.textContent = cat;
+        selectCat.appendChild(opt);
+    });
+}
+
+
+function salvarEdicao() {
+    const t = dados.find(d => d.id === editandoId);
+    if (!t) return;
+    t.descricao = document.getElementById('edit-desc').value;
+    t.valor = parseFloat(document.getElementById('edit-valor').value) || t.valor;
+    t.tipo = document.getElementById('edit-tipo').value;
+    t.metodo = document.getElementById('edit-metodo').value;
+    t.banco = document.getElementById('edit-banco').value;
+    t.categoria = document.getElementById('edit-categoria').value;
+    t.data = new Date(document.getElementById('edit-data').value).toISOString();
+    salvar();
+    atualizar();
+    fecharModal('modal-editar');
+    addMensagem('Transação editada', 'system', `${t.descricao} - R$ ${t.valor.toFixed(2)}`);
+}
+
+function deletarTransacao() {
+    dados = dados.filter(d => d.id!== editandoId);
+    salvar();
+    atualizar();
+    fecharModal('modal-editar');
+    addMensagem('Transação excluída', 'system');
+}
+
+function resetarTransacoes() {
+    if (!confirm('Apagar todas as transações? Contas e cartões serão mantidos.')) return;
+    dados = [];
+    salvar();
+    atualizar();
+    addMensagem('Transações limpas', 'system');
+    toggleMenu();
+}
+
+function resetarApp() {
+    if (!confirm('Apagar TUDO? Não tem volta.')) return;
+    localStorage.clear();
+    location.reload();
+}
+
+function toggleProjetado() {
+    config.projetarSaldo =!config.projetarSaldo;
+    salvar();
+    aplicarVisualSaldoProjetado();
+    atualizar();
+    toggleMenu();
+    addMensagem(`Projeção ${config.projetarSaldo? 'ativada' : 'desativada'}`, 'system');
+}
+
+function aplicarVisualSaldoProjetado() {
+    const btn = document.getElementById('btnProjetado');
+    if (!btn) return;
+    if (config.projetarSaldo) {
+        btn.classList.remove('text-slate-400');
+        btn.classList.add('text-blue-500');
+    } else {
+        btn.classList.add('text-slate-400');
+        btn.classList.remove('text-blue-500');
+    }
+}
+
+function editarContaCartao(tipo, idx) {
+    alert('Edição em breve');
+}
+
+function abrirExtrato(tipo) {
+    if (tipo === 'entrada') document.getElementById('filtro-tipo').value = 'entrada';
+    if (tipo === 'saida') document.getElementById('filtro-tipo').value = 'saida';
+    if (tipo === 'cartao') document.getElementById('filtro-tipo').value = 'cartao';
+    if (tipo === 'saldo') document.getElementById('filtro-tipo').value = '';
+    abrirModal('modal-extrato');
+    filtrarExtrato();
+}
+
+// LIGA TUDO QUANDO O DOM CARREGAR
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM carregado');
+    
+    let modo = localStorage.getItem('bankday_modo');
+
+if (!modo) {
+    modo = 'teste';
+    localStorage.setItem('bankday_modo', 'teste');
+        }
+    if (!modo) {
+        document.getElementById('modal-onboarding').style.display = 'flex';
+        document.getElementById('app-content').style.display = 'none';
+        document.getElementById('tela-pin').style.display = 'none';
+    } else if (modo === 'teste') {
+        document.getElementById('modal-onboarding').style.display = 'none';
+        document.getElementById('tela-pin').style.display = 'none';
+        document.getElementById('app-content').style.display = 'flex';
+        if (!contas.length) contas = [{nome: 'Principal', saldoInicial: 0}];
+        salvar();
+    } else if (modo === 'producao') {
+        document.getElementById('modal-onboarding').style.display = 'none';
+        document.getElementById('app-content').style.display = 'none';
+        initPin();
+    }
+    
+    atualizarMes();
+    atualizar();
+    
+    // LIGA INPUT E BOTÃO AQUI
+    const input = document.getElementById('user-input');
+    const btn = document.getElementById('btn-enviar');
+    
+if(input) {
+    input.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            processarMensagem();
+        }
+    });
+
+    console.log('Input OK');
+}
+    
+    
+    if(btn) {
+        btn.addEventListener('click', processarMensagem);
+        console.log('Botão OK');
+    }
+});
+
+
+
+if (localStorage.getItem('bankday_tema') === 'light') {
+    document.body.classList.add('light-mode');
+
+    const icon = document.getElementById('theme-icon');
+    if (icon) icon.className = 'fas fa-sun';
+}
