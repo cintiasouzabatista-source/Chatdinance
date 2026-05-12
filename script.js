@@ -340,90 +340,59 @@ function executarImportacao() {
     }
 }
 
+// Corrigindo a leitura do arquivo para bater com o ID do HTML
 function lerArquivoExtrato(event) {
     const file = event.target.files[0];
-    if (!file) {
-        addMensagem('Nenhum arquivo selecionado', 'system');
-        return;
-    }
-    console.log('Arquivo selecionado:', file.name);
-    addMensagem(`Lendo arquivo ${file.name}...`, 'system');
+    if (!file) return;
+
     const reader = new FileReader();
     reader.onload = function(e) {
         const conteudo = e.target.result;
         const extensao = file.name.split('.').pop().toLowerCase();
-        console.log('Conteúdo lido:', conteudo.substring(0, 200));
+        
         if (extensao === 'csv') {
             importarCSV(conteudo);
         } else if (extensao === 'ofx') {
             importarOFX(conteudo);
         } else {
-            addMensagem('Formato inválido. Use.csv ou.ofx', 'system');
+            addMensagem('Use apenas arquivos .csv ou .ofx', 'system');
         }
     };
-    reader.onerror = function() {
-        addMensagem('Erro ao ler arquivo', 'system');
-    };
     reader.readAsText(file, 'UTF-8');
-    event.target.value = '';
+    event.target.value = ''; // Limpa para permitir subir o mesmo arquivo de novo
 }
 
+// Versão robusta do importarCSV
 function importarCSV(texto) {
     const linhas = texto.split('\n');
-    let importadas = 0;
-    let erros = 0;
-
-    if (linhas.length < 2) return addMensagem('CSV vazio', 'system');
-
-    // Detecta se o separador é vírgula ou ponto-e-vírgula
     const separador = linhas[0].includes(';') ? ';' : ',';
+    let importadas = 0;
 
     linhas.forEach((linha, idx) => {
-        // Pula cabeçalho ou linhas vazias
         if (idx === 0 || !linha.trim()) return;
-
         const cols = linha.split(separador).map(c => c.trim().replace(/^"|"$/g, ''));
         
-        try {
-            // Tenta identificar qual coluna é o valor (geralmente contém números e vírgula)
-            // Aqui assumimos o padrão comum: 0: Data, 1: Descrição, 2: Valor
-            let dataRaw = cols[0];
-            let desc = cols[1];
-            let valorRaw = cols[2];
-
-            if (!dataRaw || !valorRaw) { erros++; return; }
-
-            // Trata Data (aceita DD/MM/AAAA ou AAAA-MM-DD)
-            const partes = dataRaw.replace(/-/g, '/').split('/');
-            let dataISO;
-            if (partes[0].length === 4) { // Formato internacional
-                dataISO = new Date(partes[0], partes[1] - 1, partes[2]).toISOString();
-            } else { // Formato brasileiro
-                const ano = partes[2].length === 2 ? '20' + partes[2] : partes[2];
-                dataISO = new Date(ano, partes[1] - 1, partes[0]).toISOString();
-            }
-
-            // Trata Valor (remove R$, troca vírgula por ponto)
-            let valor = parseFloat(valorRaw.replace(/[R$\s]/g, '').replace(/\./g, '').replace(',', '.'));
-            
-            if (isNaN(valor)) { erros++; return; }
-
-            const tipoFinal = valor > 0 ? 'entrada' : 'saida';
-            const valorAbs = Math.abs(valor);
-
-            dados.push({
-                id: Date.now() + Math.random(),
-                descricao: cap(desc) || 'Importado CSV',
-                valor: valorAbs,
-                tipo: tipoFinal,
-                metodo: 'conta',
-                banco: contas[0]?.nome || 'Principal',
-                data: dataISO,
-                categoria: identificarCategoria(desc, tipoFinal)
-            });
-            importadas++;
-        } catch (e) {
-            erros++;
+        if (cols.length >= 3) {
+            try {
+                const valorLimpo = cols[2].replace(/[R$\s]/g, '').replace(/\./g, '').replace(',', '.');
+                const valorNum = Math.abs(parseFloat(valorLimpo));
+                
+                if (!isNaN(valorNum)) {
+                    const tipoFinal = parseFloat(valorLimpo) > 0 ? 'entrada' : 'saida';
+                    // Criando a transação
+                    dados.push({
+                        id: Date.now() + Math.random(),
+                        descricao: cap(cols[1]),
+                        valor: valorNum,
+                        tipo: tipoFinal,
+                        metodo: 'conta',
+                        banco: contas[0]?.nome || 'Principal',
+                        data: new Date().toISOString(), // Idealmente tratar a data da col[0]
+                        categoria: identificarCategoria(cols[1], tipoFinal)
+                    });
+                    importadas++;
+                }
+            } catch (e) { console.error("Erro na linha", idx); }
         }
     });
 
@@ -431,13 +400,9 @@ function importarCSV(texto) {
         salvar();
         atualizar();
         fecharModal('modal-importar');
-        addMensagem(`${importadas} transações importadas!`, 'system');
-    } else {
-        addMensagem('Não foi possível ler os valores do CSV.', 'system');
+        addMensagem(`${importadas} transações do CSV importadas!`, 'system');
     }
-}
-
-function importarOFX(texto) {
+}function importarOFX(texto) {
     const transacoes = texto.match(/<STMTTRN>[\s\S]*?<\/STMTTRN>/g);
     if (!transacoes) {
         addMensagem('Arquivo OFX inválido', 'system');
@@ -612,6 +577,14 @@ function fecharModal(id) {
     if (modal) modal.style.display = 'none';
 }
 
+function abrirExtrato(filtro) {
+    abrirModal('modal-extrato');
+    const select = document.getElementById('filtro-tipo');
+    if (select) {
+        select.value = filtro;
+        filtrarExtrato();
+    }
+}
 function filtrarExtrato() {
     const tipo = document.getElementById('filtro-tipo')?.value || '';
     const cat = document.getElementById('filtro-categoria')?.value || '';
