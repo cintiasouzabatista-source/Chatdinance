@@ -1,8 +1,12 @@
+/* BANK DAY PRO - Script Principal
+   Funcionalidades: PIN, Lançamentos por Texto, Parcelamento, Gráficos e Projeção
+*/
+
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(err => console.error('SW erro:', err));
 }
 
-// VARIÁVEIS GLOBAIS
+// VARIÁVEIS GLOBAIS E ESTADO
 let tentativasPin = 0;
 let pinBloqueadoAte = 0;
 let modoTeste = true;
@@ -22,6 +26,7 @@ let tempCartoes = [];
 let chartInstance = null;
 let tipoGraficoAtivo = 'categoria';
 
+// UTILITÁRIOS
 const formatar = v => {
     v = Number(v) || 0;
     return valoresOcultos ? 'R$ ••••' : `R$ ${v.toFixed(2).replace('.', ',')}`;
@@ -31,20 +36,22 @@ const cap = s => s ? s.charAt(0).toUpperCase() + s.slice(1) : '';
 
 const CATEGORIAS = {
     entrada: {
-        'Salário': ['salario', 'pagamento', 'freela'],
-        'Vendas': ['venda', 'vendi', 'mercado', 'olx'],
+        'Salário': ['salario', 'pagamento', 'freela', 'pix recebido'],
+        'Vendas': ['venda', 'vendi', 'mercado livre', 'olx'],
         'Outras Receitas': []
     },
     saida: {
-        'Alimentação': ['ifood', 'mercado', 'restaurante', 'cafe', 'lanche', 'pizza'],
-        'Transporte': ['uber', '99', 'gasolina', 'posto'],
-        'Moradia': ['aluguel', 'luz', 'agua', 'internet'],
-        'Lazer': ['cinema', 'netflix', 'spotify', 'bar'],
-        'Compras': ['shopee', 'amazon', 'roupa', 'tenis'],
+        'Alimentação': ['ifood', 'mercado', 'restaurante', 'cafe', 'lanche', 'pizza', 'janta'],
+        'Transporte': ['uber', '99', 'gasolina', 'posto', 'onibus', 'pedagio'],
+        'Moradia': ['aluguel', 'luz', 'agua', 'internet', 'condominio', 'reforma'],
+        'Lazer': ['cinema', 'netflix', 'spotify', 'bar', 'festa', 'viagem', 'show'],
+        'Compras': ['shopee', 'amazon', 'roupa', 'tenis', 'presente'],
+        'Saúde': ['farmacia', 'medico', 'dentista', 'exame'],
         'Outras Despesas': []
     }
 };
 
+// PERSISTÊNCIA
 function salvar() {
     localStorage.setItem('bankday', JSON.stringify(dados));
     localStorage.setItem('bankday_contas', JSON.stringify(contas));
@@ -52,30 +59,29 @@ function salvar() {
     localStorage.setItem('bankday_config', JSON.stringify(config));
 }
 
+// LÓGICA DE CATEGORIZAÇÃO AUTOMÁTICA
 function identificarCategoria(desc, tipo = 'saida') {
     if (!desc) return tipo === 'entrada' ? 'Outras Receitas' : 'Outras Despesas';
     const d = desc.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-    const categoriasDoTipo = CATEGORIAS[tipo];
-
-    for (const [categoria, palavras] of Object.entries(categoriasDoTipo)) {
-        if (Array.isArray(palavras) && palavras.some(p => d.includes(p))) {
-            return categoria;
-        }
+    const categorias = CATEGORIAS[tipo];
+    for (const [categoria, palavras] of Object.entries(categorias)) {
+        if (palavras.some(p => d.includes(p))) return categoria;
     }
     return tipo === 'entrada' ? 'Outras Receitas' : 'Outras Despesas';
 }
 
-// --- SISTEMA DE PIN ---
-
+// SISTEMA DE SEGURANÇA (PIN)
 function initPin() {
     const telaPin = document.getElementById('tela-pin');
     const PIN_SALVO = localStorage.getItem('bankday_pin');
     const EH_PRIMEIRO = !PIN_SALVO;
-    
+
     document.getElementById('pin-titulo').textContent = EH_PRIMEIRO ? 'Crie seu PIN' : 'Digite seu PIN';
     document.getElementById('pin-subtitulo').textContent = EH_PRIMEIRO ? '4 dígitos para proteger o app' : 'Para acessar o app';
-    document.getElementById('btn-esqueci').style.display = EH_PRIMEIRO ? 'none' : 'block';
     
+    const btnEsqueci = document.getElementById('btn-esqueci');
+    if(btnEsqueci) btnEsqueci.style.display = EH_PRIMEIRO ? 'none' : 'block';
+
     const inputs = document.querySelectorAll('.pin-input');
     inputs.forEach((input, idx) => {
         input.value = '';
@@ -92,13 +98,11 @@ function initPin() {
 
     const agora = Date.now();
     if (pinBloqueadoAte > agora) {
-        const segundos = Math.ceil((pinBloqueadoAte - agora) / 1000);
-        bloquearPin(segundos);
+        bloquearPin(Math.ceil((pinBloqueadoAte - agora) / 1000));
     } else {
-        inputs[0].focus();
-        pinBloqueadoAte = 0;
-        tentativasPin = 0;
+        inputs[0]?.focus();
     }
+
     telaPin.style.display = 'flex';
     document.getElementById('app-content').style.display = 'none';
 }
@@ -109,10 +113,9 @@ function validarPin() {
     if (pin.length !== 4) return;
 
     const PIN_SALVO = localStorage.getItem('bankday_pin');
-    const EH_PRIMEIRO = !PIN_SALVO;
     const erro = document.getElementById('pin-erro');
 
-    if (EH_PRIMEIRO) {
+    if (!PIN_SALVO) {
         localStorage.setItem('bankday_pin', btoa(pin));
         liberarApp();
     } else {
@@ -122,12 +125,8 @@ function validarPin() {
             tentativasPin++;
             erro.textContent = `PIN incorreto. ${3 - tentativasPin} tentativas restantes`;
             erro.classList.remove('hidden');
-            inputs.forEach(i => {
-                i.value = '';
-                i.classList.add('border-rose-500');
-            });
+            inputs.forEach(i => { i.value = ''; i.classList.add('border-rose-500'); });
             inputs[0].focus();
-            setTimeout(() => inputs.forEach(i => i.classList.remove('border-rose-500')), 1000);
             if (tentativasPin >= 3) {
                 pinBloqueadoAte = Date.now() + 30000;
                 bloquearPin(30);
@@ -158,86 +157,57 @@ function bloquearPin(s) {
 }
 
 function liberarApp() {
-    tentativasPin = 0;
-    pinBloqueadoAte = 0;
-    document.getElementById('pin-erro').classList.add('hidden');
     document.getElementById('tela-pin').style.display = 'none';
     document.getElementById('app-content').style.display = 'flex';
+    atualizar();
 }
 
-// --- IMPORTAÇÃO E PROCESSAMENTO ---
-
-function executarImportacao() {
-    const textarea = document.getElementById('texto-importacao');
-    const texto = textarea ? textarea.value.trim() : "";
-    
-    if (!texto) {
-        addMensagem('Cole o extrato primeiro', 'system');
-        return;
-    }
-
-    const linhas = texto.split('\n');
-    let importadas = 0;
-
-    linhas.forEach((linha) => {
-        if (!linha.trim()) return;
-
-        const matchValor = linha.match(/(\d{1,3}(\.\d{3})*,\d{2})|(\d+\.\d{2})|(\d+,\d{2})|(\d+)/);
-        
-        if (matchValor) {
-            let valorTexto = matchValor[0].replace(/\./g, '').replace(',', '.');
-            let valorNum = Math.abs(parseFloat(valorTexto));
-            
-            if (!isNaN(valorNum) && valorNum > 0) {
-                const ehEntrada = linha.toLowerCase().match(/recebi|vendi|ganhei|salario|pix recebido|deposito|estorno/);
-                const tipoFinal = ehEntrada ? 'entrada' : 'saida';
-                const desc = linha.replace(matchValor[0], '').replace(/R\$/g, '').trim() || 'Importado';
-
-                dados.push({
-                    id: Date.now() + Math.random(),
-                    descricao: cap(desc),
-                    valor: valorNum,
-                    tipo: tipoFinal,
-                    metodo: 'conta',
-                    banco: contas[0]?.nome || 'Principal',
-                    data: new Date().toISOString(),
-                    categoria: identificarCategoria(desc, tipoFinal)
-                });
-                importadas++;
-            }
-        }
-    });
-
-    if (importadas > 0) {
-        salvar();
-        atualizar();
-        fecharModal('modal-importar');
-        if (textarea) textarea.value = "";
-        addMensagem(`${importadas} transações importadas!`, 'system');
-    } else {
-        addMensagem('Nenhum valor reconhecido no texto.', 'system');
-    }
-}
-
+// PROCESSAMENTO DE LINGUAGEM NATURAL (LANÇAMENTOS)
 function processarMensagem() {
     const input = document.getElementById("user-input");
     if (!input) return;
     let textoOriginal = input.value.trim();
     if (!textoOriginal) return;
-    
     const texto = textoOriginal.toLowerCase();
     input.value = "";
 
-    const tipo = texto.includes('recebi') || texto.includes('vendi') || texto.includes('ganhei') ? 'entrada' : 'saida';
-    const valorMatch = texto.match(/\d+(?:[.,]\d+)?/);
+    const tipo = (texto.includes('recebi') || texto.includes('vendi') || texto.includes('ganhei')) ? 'entrada' : 'saida';
     
-    if (!valorMatch) {
-        addMensagem("Valor não identificado. Ex: 'cafe 15'", 'system');
+    // Identificar Banco/Cartão na frase
+    let bancoIdentificado = null;
+    [...contas, ...cartoes].forEach(item => {
+        if (texto.includes(item.nome.toLowerCase())) bancoIdentificado = item.nome;
+    });
+
+    let metodo = "conta";
+    if (texto.includes('cartao') || texto.includes('credito') || texto.includes('fatura')) {
+        metodo = 'cartao';
+    }
+
+    const banco = bancoIdentificado || (metodo === 'cartao' ? (cartoes[0]?.nome || 'Cartão') : (contas[0]?.nome || 'Principal'));
+
+    // Lógica de Parcelamento: "Mercado 200 em 5x"
+    const regexParcelado = /(.+?)\s+(\d+(?:[.,]\d+)?)\s*(?:reais?)?\s*(?:em\s+)?(\d{1,2})x/i;
+    const matchParc = texto.match(regexParcelado);
+
+    if (matchParc) {
+        const [, desc, valorStr, parcelasStr] = matchParc;
+        const valor = parseFloat(valorStr.replace(',', '.'));
+        const parcelas = parseInt(parcelasStr);
+        if (parcelas > 1) {
+            parceleiNoCartao(cap(desc.trim()), valor, parcelas, banco);
+            return;
+        }
+    }
+
+    // Lógica à vista
+    const valorNum = parseFloat(texto.match(/\d+(?:[.,]\d+)?/)?.[0]?.replace(',', '.'));
+    if (isNaN(valorNum)) {
+        addMensagem("Use: 'cafe 15' ou 'Mercado 200 em 5x'", 'system');
         return;
     }
 
-    const valorNum = parseFloat(valorMatch[0].replace(',', '.'));
-    const desc = texto.replace(/recebi|gastei|comprei|paguei|vendi|ganhei|no|na|em|conta|\d+(?:[.,]\d+)?|reais?/gi, '').trim() || 'Lançamento';
+    const desc = texto.replace(/recebi|gastei|comprei|paguei|vendi|ganhei|no|na|em|conta|\d+(?:[.,]\d+)?|reais?|credito|x|vezes/gi, '').trim() || 'Lançamento';
     const id = Date.now();
 
     dados.push({
@@ -245,27 +215,51 @@ function processarMensagem() {
         descricao: cap(desc),
         valor: valorNum,
         tipo: tipo,
-        metodo: 'conta',
-        banco: contas[0]?.nome || 'Principal',
+        metodo: metodo,
+        banco: banco,
         data: new Date().toISOString(),
         categoria: identificarCategoria(desc, tipo)
     });
-
+    
     addMensagem(textoOriginal, 'user', `Categoria: ${identificarCategoria(desc, tipo)}`, false, id);
     salvar();
     atualizar();
 }
 
-// --- ATUALIZAÇÃO DA UI ---
+function parceleiNoCartao(descricao, valorTotal, parcelas, cartaoNome) {
+    let cartao = cartoes.find(c => c.nome.toLowerCase() === cartaoNome.toLowerCase()) || cartoes[0];
+    if (!cartao) return addMensagem("Cadastre um cartão primeiro", 'system');
 
+    const valorParcela = Math.floor(valorTotal / parcelas * 100) / 100;
+    const resto = +(valorTotal - valorParcela * (parcelas - 1)).toFixed(2);
+    const hoje = new Date();
+
+    for (let i = 0; i < parcelas; i++) {
+        let dataVenc = new Date(hoje.getFullYear(), hoje.getMonth() + i, cartao.diaVencimento);
+        const valorFinal = i === parcelas - 1 ? resto : valorParcela;
+
+        dados.push({
+            id: Date.now() + i,
+            descricao: `${descricao} (${i + 1}/${parcelas})`,
+            valor: valorFinal,
+            tipo: "saida",
+            metodo: "cartao",
+            banco: cartao.nome,
+            data: dataVenc.toISOString(),
+            categoria: identificarCategoria(descricao, 'saida')
+        });
+    }
+    salvar();
+    addMensagem(`${descricao} parcelado em ${parcelas}x`, 'user', cartao.nome, false);
+    atualizar();
+}
+
+// ATUALIZAÇÃO DE INTERFACE E SALDOS
 function atualizar() {
-    // Sincroniza com localstorage para garantir dados novos
-    dados = JSON.parse(localStorage.getItem('bankday') || '[]');
-    
     const mes = mesAtual.getMonth();
     const ano = mesAtual.getFullYear();
     
-    let dadosMes = dados.filter(d => {
+    const dadosMes = dados.filter(d => {
         const dt = new Date(d.data);
         return dt.getMonth() === mes && dt.getFullYear() === ano;
     });
@@ -273,31 +267,55 @@ function atualizar() {
     let ent = dadosMes.filter(d => d.tipo === 'entrada').reduce((s, d) => s + d.valor, 0);
     let sai = dadosMes.filter(d => d.tipo === 'saida' && d.metodo !== 'cartao').reduce((s, d) => s + d.valor, 0);
     let fat = dadosMes.filter(d => d.tipo === 'saida' && d.metodo === 'cartao').reduce((s, d) => s + d.valor, 0);
-    
-    let saldo = ent - sai;
-    let liquido = saldo - fat;
 
-    // Atualiza elementos na tela
-    const atualizarTexto = (id, valor) => {
-        const el = document.getElementById(id);
-        if (el) el.textContent = formatar(valor);
+    // Se projeção ativa, somar lançamentos futuros do mesmo mês
+    if (config.projetarSaldo) {
+        // Lógica de projeção pode ser refinada aqui
+    }
+
+    const saldo = ent - sai;
+    const liquido = saldo - fat;
+
+    const ids = {
+        'card-entradas': ent,
+        'card-saidas': sai,
+        'card-saldo': saldo,
+        'card-cartoes': fat,
+        'card-liquido': liquido
     };
 
-    atualizarTexto('card-entradas', ent);
-    atualizarTexto('card-saidas', sai);
-    atualizarTexto('card-saldo', saldo);
-    atualizarTexto('card-cartoes', fat);
-    atualizarTexto('card-liquido', liquido);
+    for (const [id, val] of Object.entries(ids)) {
+        const el = document.getElementById(id);
+        if (el) el.textContent = formatar(val);
+    }
 
-    // Cores
-    const elSaldo = document.getElementById('card-saldo');
-    if (elSaldo) elSaldo.className = `val ${saldo >= 0 ? 'text-blue' : 'text-rose'}`;
+    const elMes = document.getElementById('mesAtual');
+    if (elMes) elMes.textContent = cap(mesAtual.toLocaleDateString('pt-BR', {month:'long', year:'numeric'}));
     
-    const elLiquido = document.getElementById('card-liquido');
-    if (elLiquido) elLiquido.className = `val big ${liquido >= 0 ? 'text-emerald' : 'text-rose'}`;
+    aplicarVisualSaldoProjetado();
 }
 
-// --- FUNÇÕES DE AUXÍLIO ---
+function aplicarVisualSaldoProjetado() {
+    const btn = document.getElementById('btnProjetado');
+    if (!btn) return;
+    btn.className = config.projetarSaldo ? 'text-blue-500 font-bold' : 'text-slate-400';
+}
+
+function toggleProjetado() {
+    config.projetarSaldo = !config.projetarSaldo;
+    salvar();
+    atualizar();
+    addMensagem(`Projeção ${config.projetarSaldo ? 'ativada' : 'desativada'}`, 'system');
+}
+
+// GESTÃO DE UI E MODAIS
+function toggleTheme() {
+    document.body.classList.toggle('light-mode');
+    const isLight = document.body.classList.contains('light-mode');
+    localStorage.setItem('bankday_tema', isLight ? 'light' : 'dark');
+    const icon = document.getElementById('theme-icon');
+    if(icon) icon.className = isLight ? 'fas fa-sun' : 'fas fa-moon';
+}
 
 function addMensagem(texto, tipo = 'system', info = '', autoLimpar = true, id = null) {
     const chat = document.getElementById("chat-box");
@@ -308,35 +326,37 @@ function addMensagem(texto, tipo = 'system', info = '', autoLimpar = true, id = 
     div.innerHTML = `
         <div class="msg-bubble">
             <p>${texto}</p>
-            ${info ? `<span class="msg-badge">${info}</span>` : ''}
+            ${info ? `<span class="msg-badge"><i class="fas fa-tag"></i> ${info}</span>` : ''}
             <div class="msg-time">${hora}</div>
         </div>
     `;
     chat.appendChild(div);
     chat.scrollTop = chat.scrollHeight;
     if (autoLimpar && tipo === 'system') {
-        setTimeout(() => { div.style.opacity = '0'; setTimeout(() => div.remove(), 300); }, 5000);
+        setTimeout(() => { div.style.opacity = '0'; setTimeout(() => div.remove(), 300); }, 8000);
     }
 }
 
-function fecharModal(id) {
-    const modal = document.getElementById(id);
-    if (modal) modal.style.display = 'none';
-}
-
-function mudarMes(d) {
-    mesAtual.setMonth(mesAtual.getMonth() + d);
-    document.getElementById('mesAtual').textContent = cap(mesAtual.toLocaleDateString('pt-BR', {month:'long', year:'numeric'}));
-    atualizar();
-}
-
-// Inicialização
+// INICIALIZAÇÃO AO CARREGAR PÁGINA
 document.addEventListener('DOMContentLoaded', () => {
-    atualizar();
-    const input = document.getElementById('user-input');
-    if (input) {
-        input.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') processarMensagem();
-        });
+    // Carregar Tema
+    if (localStorage.getItem('bankday_tema') === 'light') toggleTheme();
+
+    let modo = localStorage.getItem('bankday_modo');
+    if (!modo) {
+        document.getElementById('modal-onboarding').style.display = 'flex';
+    } else if (modo === 'producao') {
+        initPin();
+    } else {
+        liberarApp();
     }
+    
+    // Listeners
+    const input = document.getElementById('user-input');
+    if(input) input.addEventListener('keydown', e => e.key === 'Enter' && processarMensagem());
+    
+    const btnEnviar = document.getElementById('btn-enviar');
+    if(btnEnviar) btnEnviar.onclick = processarMensagem;
+
+    atualizar();
 });
