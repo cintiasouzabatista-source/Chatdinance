@@ -2,13 +2,9 @@ if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(err => console.error('SW erro:', err));
 }
 
-// VARIÁVEIS GLOBAIS
+// --- VARIÁVEIS GLOBAIS ---
 let tentativasPin = 0;
 let pinBloqueadoAte = 0;
-let modoTeste = true;
-let modoProducao = false;
-let menuTimeout = null;
-
 let dados = JSON.parse(localStorage.getItem('bankday') || '[]');
 let contas = JSON.parse(localStorage.getItem('bankday_contas') || '[]');
 let cartoes = JSON.parse(localStorage.getItem('bankday_cartoes') || '[]');
@@ -17,10 +13,7 @@ let config = JSON.parse(localStorage.getItem('bankday_config') || '{"projetarSal
 let mesAtual = new Date();
 let valoresOcultos = false;
 let editandoId = null;
-let tempContas = [];
-let tempCartoes = [];
 let chartInstance = null;
-let tipoGraficoAtivo = 'categoria';
 
 const formatar = v => {
     v = Number(v) || 0;
@@ -44,7 +37,78 @@ const CATEGORIAS = {
     }
 };
 
-// --- FUNÇÕES DE PERSISTÊNCIA ---
+// --- FUNÇÕES DE NAVEGAÇÃO E MODAIS ---
+function abrirModal(id) {
+    const m = document.getElementById(id);
+    if (m) m.style.display = 'flex';
+}
+
+function fecharModal(id) {
+    const m = document.getElementById(id);
+    if (m) m.style.display = 'none';
+}
+
+function mudarMes(direcao) {
+    mesAtual.setMonth(mesAtual.getMonth() + direcao);
+    atualizarMes();
+    atualizar();
+}
+
+function atualizarMes() {
+    const el = document.getElementById('mesAtual');
+    if (el) {
+        const nomeMes = mesAtual.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+        el.textContent = cap(nomeMes);
+    }
+}
+
+// --- LÓGICA DE INICIALIZAÇÃO E PIN ---
+function selecionarModo(tipo) {
+    localStorage.setItem('bankday_modo', tipo);
+    location.reload(); // Recarrega para aplicar a lógica do DOMContentLoaded
+}
+
+function initPin() {
+    const telaPin = document.getElementById('tela-pin');
+    const PIN_SALVO = localStorage.getItem('bankday_pin');
+    
+    if (telaPin) telaPin.style.display = 'flex';
+
+    const inputs = document.querySelectorAll('.pin-input');
+    inputs.forEach((input, idx) => {
+        input.value = '';
+        input.oninput = (e) => {
+            if (e.target.value && idx < 3) inputs[idx + 1].focus();
+            if (idx === 3) validarPin();
+        };
+    });
+}
+
+function validarPin() {
+    const inputs = document.querySelectorAll('.pin-input');
+    const pinDigitado = Array.from(inputs).map(i => i.value).join('');
+    const PIN_SALVO = localStorage.getItem('bankday_pin');
+
+    if (!PIN_SALVO) {
+        // Primeiro acesso: cria o PIN
+        localStorage.setItem('bankday_pin', pinDigitado);
+        liberarApp();
+    } else if (pinDigitado === PIN_SALVO) {
+        liberarApp();
+    } else {
+        alert("PIN Incorreto!");
+        inputs.forEach(i => i.value = '');
+        inputs[0].focus();
+    }
+}
+
+function liberarApp() {
+    document.getElementById('tela-pin').style.display = 'none';
+    document.getElementById('app-content').style.display = 'flex';
+    atualizar();
+}
+
+// --- CORE DO APP (SALVAR/PROCESSAR) ---
 function salvar() {
     localStorage.setItem('bankday', JSON.stringify(dados));
     localStorage.setItem('bankday_contas', JSON.stringify(contas));
@@ -62,7 +126,6 @@ function identificarCategoria(desc, tipo = 'saida') {
     return tipo === 'entrada' ? 'Outras Receitas' : 'Outras Despesas';
 }
 
-// --- LÓGICA DE MENSAGENS E IA ---
 window.processarMensagem = function() {
     const input = document.getElementById("user-input");
     if (!input || !input.value.trim()) return;
@@ -71,95 +134,45 @@ window.processarMensagem = function() {
     let texto = textoOriginal.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
     input.value = "";
 
-    // Garantir conta padrão
     if (!contas.length) {
         contas = [{ nome: 'Principal', saldoInicial: 0 }];
         salvar();
     }
 
     const tipo = (texto.includes('recebi') || texto.includes('vendi') || texto.includes('ganhei')) ? 'entrada' : 'saida';
-    
-    // Detecção de Método (Cartão vs Conta)
     let metodo = "conta";
     let banco = contas[0]?.nome || 'Principal';
 
-    const palavrasCartao = ['cartao', 'credito', 'nubank', 'visa', 'master', 'fatura'];
-    if (palavrasCartao.some(p => texto.includes(p))) {
+    if (['cartao', 'credito', 'nubank', 'fatura'].some(p => texto.includes(p))) {
         metodo = 'cartao';
         banco = cartoes[0]?.nome || 'Cartão';
     }
 
-    // Tentar identificar conta específica pelo nome
-    contas.forEach(c => {
-        if (texto.includes(c.nome.toLowerCase())) {
-            banco = c.nome;
-            metodo = 'conta';
-        }
-    });
-
-    // Extrair Valor
     const matchValor = texto.match(/\d+(?:[.,]\d+)?/);
     if (!matchValor) {
-        addMensagem("Não entendi o valor. Ex: 'Almoço 25'", 'system');
+        addMensagem("Quanto foi? Ex: 'almoco 25'", 'system');
         return;
     }
     const valorNum = parseFloat(matchValor[0].replace(',', '.'));
-
-    // Limpar Descrição
-    const desc = texto.replace(/recebi|gastei|comprei|paguei|vendi|ganhei|no|na|em|conta|\d+(?:[.,]\d+)?|reais?|credito|cartao|fatura/gi, '').trim() || 'Lançamento';
+    const desc = texto.replace(/recebi|gastei|comprei|paguei|vendi|ganhei|no|na|em|conta|\d+(?:[.,]\d+)?|reais?|credito|cartao/gi, '').trim() || 'Lançamento';
     
-    const id = Date.now();
     const novaTransacao = {
-        id: id,
+        id: Date.now(),
         descricao: cap(desc),
         valor: valorNum,
         tipo: tipo,
         metodo: metodo,
         banco: banco,
         data: new Date().toISOString(),
-        texto: textoOriginal,
         categoria: identificarCategoria(desc, tipo)
     };
 
     dados.push(novaTransacao);
-    addMensagem(textoOriginal, 'user', `Categoria: ${novaTransacao.categoria}`, false, id);
+    addMensagem(textoOriginal, 'user', `Categoria: ${novaTransacao.categoria}`, false, novaTransacao.id);
     salvar();
     atualizar();
 };
 
-// --- IMPORTAÇÃO ---
-function importarCSV(texto) {
-    const linhas = texto.split('\n');
-    let importadas = 0;
-    const separador = linhas[0].includes(';') ? ';' : ',';
-
-    linhas.forEach((linha, idx) => {
-        if (idx === 0 || !linha.trim()) return;
-        const cols = linha.split(separador).map(c => c.trim().replace(/^"|"$/g, ''));
-        if (cols.length < 3) return;
-
-        try {
-            let valor = parseFloat(cols[2].replace(/R\$\s?/g, '').replace(/\./g, '').replace(',', '.'));
-            if (isNaN(valor)) return;
-
-            const tipoFinal = valor > 0 ? 'entrada' : 'saida';
-            dados.push({
-                id: Date.now() + Math.random(),
-                descricao: cap(cols[1]),
-                valor: Math.abs(valor),
-                tipo: tipoFinal,
-                metodo: 'conta',
-                banco: contas[0]?.nome || 'Principal',
-                data: new Date().toISOString(),
-                categoria: identificarCategoria(cols[1], tipoFinal)
-            });
-            importadas++;
-        } catch (e) { console.error("Erro na linha CSV", idx); }
-    });
-    if (importadas > 0) { salvar(); atualizar(); addMensagem(`${importadas} itens do CSV ok`, 'system'); }
-}
-
-// --- INTERFACE ---
 function atualizar() {
     const mes = mesAtual.getMonth();
     const ano = mesAtual.getFullYear();
@@ -174,7 +187,6 @@ function atualizar() {
     let fat = dadosMes.filter(d => d.tipo === 'saida' && d.metodo === 'cartao').reduce((s, d) => s + d.valor, 0);
     
     let saldo = ent - sai;
-    if (config.projetarSaldo) { /* lógica de projeção aqui */ }
 
     const atualizarTexto = (id, val) => {
         const el = document.getElementById(id);
@@ -192,25 +204,31 @@ function addMensagem(texto, tipo = 'system', info = '', autoLimpar = true, id = 
     const chat = document.getElementById("chat-box");
     if (!chat) return;
     const div = document.createElement("div");
-    div.className = `msg ${tipo} animate-in`;
-    if (id) div.onclick = () => abrirModalEditar(id);
-    div.innerHTML = `
-        <div class="msg-bubble">
-            <p>${texto}</p>
-            ${info ? `<span class="msg-badge"><i class="fas fa-tag"></i> ${info}</span>` : ''}
-        </div>`;
+    div.className = `msg ${tipo}`;
+    div.innerHTML = `<div class="msg-bubble"><p>${texto}</p>${info ? `<small>${info}</small>` : ''}</div>`;
     chat.appendChild(div);
     chat.scrollTop = chat.scrollHeight;
     if (autoLimpar && tipo === 'system') setTimeout(() => div.remove(), 5000);
 }
 
-// --- EVENTOS ---
+// --- INICIALIZAÇÃO ---
 document.addEventListener('DOMContentLoaded', () => {
+    const modo = localStorage.getItem('bankday_modo');
+
+    if (!modo) {
+        abrirModal('modal-onboarding');
+    } else if (modo === 'teste') {
+        document.getElementById('app-content').style.display = 'flex';
+        atualizarMes();
+        atualizar();
+    } else {
+        initPin();
+    }
+
     const input = document.getElementById('user-input');
     if (input) {
         input.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') window.processarMensagem();
         });
     }
-    atualizar();
 });
