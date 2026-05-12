@@ -27,6 +27,14 @@ const formatar = v => {
 
 const cap = s => s ? s.charAt(0).toUpperCase() + s.slice(1) : '';
 
+// Exemplo de lógica para o componente de card
+const [valorBanco, setValorBanco] = useState(0);
+const saldoApp = -1016.00; // Valor que vem da sua lógica atual
+const diferenca = saldoApp - valorBanco;
+
+// Definição de cor dinâmica para o feedback visual
+const corDiferenca = diferenca === 0 ? 'text-green-500' : 'text-red-500';
+
 const CATEGORIAS = {
     entrada: {
         'Salário': ['salario', 'pagamento', 'freela', 'pix recebido'],
