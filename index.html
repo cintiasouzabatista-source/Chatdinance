@@ -10,7 +10,7 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="BankDay">
+    <meta name="apple-mobile-web-app-title" content="BankDay Pro">
     <link rel="manifest" href="./manifest.json">
     <link rel="apple-touch-icon" href="icons/icon-192x192.png">
 
@@ -32,7 +32,7 @@
             <input type="password" maxlength="1" class="pin-input" inputmode="numeric">
             <input type="password" maxlength="1" class="pin-input" inputmode="numeric">
         </div>
-        <p id="pin-erro" class="hidden"></p>
+        <p id="pin-erro" class="hidden text-rose"></p>
         <button id="btn-esqueci" onclick="esqueciPin()">Esqueceu o PIN?</button>
     </div>
 </div>
@@ -63,6 +63,7 @@
         </div>
     </div>
 </div>
+
 <!-- APP CONTENT -->
 <div id="app-content" style="display:none;">
     <header>
@@ -71,9 +72,7 @@
             <div class="header-actions">
                 <button onclick="toggleTheme()"><i id="theme-icon" class="fas fa-moon"></i></button>
                 <button onclick="toggleVisibility()"><i id="eye-icon" class="fas fa-eye"></i></button>
-                <button onclick="toggleMenu()" id="btnMenu" style="position:relative">
-                    <i class="fas fa-ellipsis-v"></i>
-                </button>
+                <button onclick="toggleMenu()" id="btnMenu"><i class="fas fa-ellipsis-v"></i></button>
             </div>
         </div>
 
@@ -83,7 +82,6 @@
             <button onclick="mudarMes(1)"><i class="fas fa-chevron-right"></i></button>
         </div>
 
-        <!-- 5 CARDS CORRIGIDOS COM IDs QUE O JS ESPERA -->
         <div class="cards-grid">
             <div onclick="abrirExtrato('entrada')" class="card-item">
                 <p>Entradas</p>
@@ -102,18 +100,9 @@
                 <p id="card-cartoes" class="val text-rose">R$ 0,00</p>
             </div>
             <div onclick="abrirExtrato('saldo')" class="card-liquido">
-                <div class="card-liquido-top">
-                    <p>Saldo Final</p>
-                    <i class="fas fa-circle-question"></i>
-                </div>
+                <p>Saldo Final</p>
                 <p id="card-liquido" class="val text-emerald big">R$ 0,00</p>
             </div>
-        </div>
-
-        <!-- Card de projeção - só aparece se ativar -->
-        <div id="saldoProjetado" class="card-projecao" style="display:none">
-            <span>Saldo Projetado Próximo Mês</span>
-            <strong id="saldoProjValor">R$ 0,00</strong>
         </div>
     </header>
 
@@ -124,7 +113,6 @@
         <button id="btn-enviar" onclick="processarMensagem()"><i class="fas fa-paper-plane"></i></button>
     </footer>
 
-    <!-- BOTTOM NAV - SÓ 3 ABAS AGORA -->
     <nav>
         <button class="nav-item active" onclick="trocarAba('chat', event)">
             <i class="fas fa-comment"></i><span>Chat</span>
@@ -137,27 +125,13 @@
         </button>
     </nav>
 
-    <!-- MENU DROPDOWN - AGORA ABRE NO HEADER -->
     <div id="menuDropdown" class="menu-dropdown hidden">
-        <button onclick="abrirModal('modal-contas')">
-            <i class="fas fa-university"></i> Contas & Cartões
-        </button>
-        <button onclick="abrirModal('modal-fixas')">
-            <i class="fas fa-repeat"></i> Contas Fixas
-        </button>
-        <button onclick="toggleProjetado()" id="btnProjetado">
-            <i class="fas fa-chart-line"></i> Saldo Projetado
-        </button>
-        <button onclick="abrirModal('modal-importar')">
-            <i class="fas fa-file-import"></i> Importar extrato
-        </button>
+        <button onclick="abrirModal('modal-contas')"><i class="fas fa-university"></i> Contas</button>
+        <button onclick="toggleProjetado()" id="btnProjetado"><i class="fas fa-chart-line"></i> Projeção</button>
+        <button onclick="abrirModal('modal-importar')"><i class="fas fa-file-import"></i> Importar</button>
         <div class="menu-divider"></div>
-        <button onclick="resetarTransacoes()">
-            <i class="fas fa-broom"></i> Limpar Transações
-        </button>
-        <button onclick="resetarApp()" class="text-rose">
-            <i class="fas fa-trash"></i> Resetar App
-        </button>
+        <button onclick="resetarTransacoes()"><i class="fas fa-broom"></i> Limpar Tudo</button>
+        <button onclick="resetarApp()" class="text-rose"><i class="fas fa-trash"></i> Resetar App</button>
     </div>
 </div>
 
@@ -169,92 +143,21 @@
             <button onclick="fecharModal('modal-importar')"><i class="fas fa-times"></i></button>
         </div>
         <div class="modal-body">
-            <div class="import-info">
-                <p>Escolha o arquivo exportado do seu banco:</p>
-                <div class="import-format">
-                    <span>Formatos aceitos:</span>
-                    <code>CSV - Padrão da maioria dos bancos</code>
-                    <code>OFX - Padrão internacional</code>
-                </div>
-            </div>
-
-           <input type="file" id="arquivo-extrato" accept=".csv,.ofx" style="display:none" onchange="lerArquivoExtrato(event)">
-
-<button onclick="document.getElementById('arquivo-extrato').click()" class="btn-upload">
-    <i class="fas fa-file-upload"></i>
-    Selecionar arquivo CSV/OFX
-</button>
-
+            <input type="file" id="arquivo-extrato" accept=".csv,.ofx" style="display:none" onchange="lerArquivoExtrato(event)">
+            <button onclick="document.getElementById('arquivo-extrato').click()" class="btn-upload">
+                <i class="fas fa-file-upload"></i> Selecionar arquivo
+            </button>
             <div class="divider-text">ou</div>
-
-            <p class="modal-hint">Cole o texto se não tiver arquivo:</p>
-            <textarea id="texto-importacao" placeholder="DD/MM/AAAA DESCRIÇÃO VALOR C/D" rows="6"></textarea>
-            
+            <textarea id="texto-importacao" placeholder="Cole aqui seu extrato..." rows="4"></textarea>
             <div class="modal-actions">
-                <button onclick="fecharModal('modal-importar')" class="btn-cancelar">
-                    Cancelar
-                </button>
-                <button onclick="executarImportacao()" class="btn-save">
-                    Importar texto
-                </button>
+                <button onclick="fecharModal('modal-importar')" class="btn-cancelar">Cancelar</button>
+                <button onclick="executarImportacao()" class="btn-save">Importar Texto</button>
             </div>
         </div>
     </div>
 </div>
 
-<!-- MODAL EXTRATO -->
-<div id="modal-extrato" class="modal">
-    <div class="modal-content extrato-modal">
-        <div class="modal-head">
-            <h3>Extrato</h3>
-            <button onclick="fecharModal('modal-extrato')"><i class="fas fa-times"></i></button>
-        </div>
-        
-        <!-- FILTROS NOVOS -->
-        <div class="extrato-filters">
-            <div class="filter-group">
-                <button id="filter-tipo" onclick="abrirFiltroTipo()" class="filter-btn">
-                    <i class="fas fa-filter"></i>
-                    <span id="filter-tipo-texto">Todos</span>
-                    <i class="fas fa-chevron-down"></i>
-                </button>
-                <div id="filter-tipo-menu" class="filter-dropdown hidden">
-                    <button onclick="aplicarFiltroTipo('')">Todos</button>
-                    <button onclick="aplicarFiltroTipo('entrada')">Entradas</button>
-                    <button onclick="aplicarFiltroTipo('saida')">Saídas</button>
-                    <button onclick="aplicarFiltroTipo('cartao')">Cartão</button>
-                </div>
-            </div>
-            
-            <div class="filter-group">
-                <button id="filter-cat" onclick="abrirFiltroCat()" class="filter-btn">
-                    <i class="fas fa-tag"></i>
-                    <span id="filter-cat-texto">Todas categorias</span>
-                    <i class="fas fa-chevron-down"></i>
-                </button>
-                <div id="filter-cat-menu" class="filter-dropdown hidden"></div>
-            </div>
-        </div>
-
-        <!-- RESUMO DO MÊS NO TOPO -->
-        <div id="extrato-resumo" class="extrato-resumo">
-            <div class="resumo-item">
-                <span>Entradas</span>
-                <strong id="resumo-entradas" class="text-emerald">R$ 0,00</strong>
-            </div>
-            <div class="resumo-item">
-                <span>Saídas</span>
-                <strong id="resumo-saidas" class="text-rose">R$ 0,00</strong>
-            </div>
-            <div class="resumo-item">
-                <span>Saldo</span>
-                <strong id="resumo-saldo" class="text-blue">R$ 0,00</strong>
-            </div>
-        </div>
-
-        <div id="lista-extrato" class="extrato-lista"></div>
-    </div>
-</div>
+<!-- MODAL EXTRATO (CORRIGIDO) -->
 <div id="modal-extrato" class="modal">
     <div class="modal-content full">
         <div class="modal-head">
@@ -310,24 +213,24 @@
         <div class="modal-body">
             <h4>Contas</h4>
             <div id="lista-contas-temp" class="list-temp"></div>
-            <input type="text" id="conta-nome" placeholder="Nome da conta">
+            <input type="text" id="conta-nome" placeholder="Ex: Nubank">
             <input type="number" id="conta-saldo" placeholder="Saldo inicial" step="0.01">
-            <button onclick="addTempConta()" class="btn-add">+ Adicionar Conta</button>
+            <button onclick="addTempConta()" class="btn-add">+ Adicionar</button>
 
             <h4 style="margin-top:20px">Cartões</h4>
             <div id="lista-cartoes-temp" class="list-temp"></div>
-            <input type="text" id="cartao-nome" placeholder="Nome do cartão">
+            <input type="text" id="cartao-nome" placeholder="Ex: Visa">
             <div class="row">
-                <input type="number" id="cartao-fechamento" placeholder="Dia fechamento" min="1" max="31">
-                <input type="number" id="cartao-vencimento" placeholder="Dia vencimento" min="1" max="31">
+                <input type="number" id="cartao-fechamento" placeholder="Dia Fech.">
+                <input type="number" id="cartao-vencimento" placeholder="Dia Venc.">
             </div>
-            <button onclick="addTempCartao()" class="btn-add">+ Adicionar Cartão</button>
-            <button onclick="finalizarCadastro()" class="btn-save">Salvar</button>
+            <button onclick="addTempCartao()" class="btn-add">+ Adicionar</button>
+            <button onclick="finalizarCadastro()" class="btn-save">Salvar Tudo</button>
         </div>
     </div>
 </div>
 
-<<!-- MODAL EDITAR -->
+<!-- MODAL EDITAR -->
 <div id="modal-editar" class="modal">
     <div class="modal-content">
         <div class="modal-head">
@@ -335,55 +238,25 @@
             <button onclick="fecharModal('modal-editar')"><i class="fas fa-times"></i></button>
         </div>
         <div class="modal-body">
-            <div class="form-group">
-                <label>Descrição</label>
-                <input type="text" id="edit-desc" placeholder="Descrição">
-            </div>
-            <div class="form-group">
-                <label>Valor</label>
-                <input type="number" id="edit-valor" step="0.01" placeholder="0,00">
-            </div>
-            <div class="form-group">
-                <label>Data</label>
-                <input type="date" id="edit-data">
+            <div class="form-group"><label>Descrição</label><input type="text" id="edit-desc"></div>
+            <div class="form-group"><label>Valor</label><input type="number" id="edit-valor" step="0.01"></div>
+            <div class="form-group"><label>Data</label><input type="date" id="edit-data"></div>
+            <div class="form-row">
+                <div class="form-group"><label>Tipo</label><select id="edit-tipo" onchange="atualizarCategorias()"><option value="entrada">Entrada</option><option value="saida">Saída</option></select></div>
+                <div class="form-group"><label>Método</label><select id="edit-metodo" onchange="atualizarContasModal()"><option value="conta">Conta</option><option value="cartao">Cartão</option></select></div>
             </div>
             <div class="form-row">
-                <div class="form-group">
-                    <label>Tipo</label>
-                    <select id="edit-tipo" onchange="atualizarCategorias()">
-                        <option value="entrada">Entrada</option>
-                        <option value="saida">Saída</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Método</label>
-                    <select id="edit-metodo" onchange="atualizarContasModal()">
-                        <option value="conta">Conta</option>
-                        <option value="cartao">Cartão</option>
-                        <option value="dinheiro">Dinheiro</option>
-                    </select>
-                </div>
+                <div class="form-group"><label>Categoria</label><select id="edit-categoria"></select></div>
+                <div class="form-group"><label>Conta/Cartão</label><select id="edit-banco"></select></div>
             </div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label>Categoria</label>
-                    <select id="edit-categoria"></select>
-                </div>
-                <div class="form-group">
-                    <label>Conta/Cartão</label>
-                    <select id="edit-banco"></select>
-                </div>
+            <div class="modal-actions">
+                <button onclick="deletarTransacao()" class="btn-delete">Excluir</button>
+                <button onclick="salvarEdicao()" class="btn-save">Salvar</button>
             </div>
-            
-<div class="modal-actions">
-    <button onclick="deletarTransacao()" class="btn-delete">
-        Excluir
-    </button>
-    <button onclick="salvarEdicao()" class="btn-save">
-        Salvar
-    </button>
+        </div>
+    </div>
 </div>
-            
+
 <script src="script.js"></script>
 </body>
 </html>
