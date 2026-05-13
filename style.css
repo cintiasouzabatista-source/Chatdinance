@@ -1131,6 +1131,31 @@ body.light-mode.divider-text::after {
     padding: 10px;
 }
 
+.list-temp {
+    max-height: 150px;
+    overflow-y: auto;
+    margin-bottom: 12px;
+}
+
+.item-temp {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background: var(--hover);
+    border-radius: 8px;
+    margin-bottom: 6px;
+    font-size: 13px;
+}
+
+.item-temp button {
+    background: none;
+    border: none;
+    color: var(--danger);
+    cursor: pointer;
+    padding: 4px 8px;
+}
+
 /* O card de Saldo Final deve ocupar as duas colunas */
 .card-liquido {
     grid-column: span 2;
