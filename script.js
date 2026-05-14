@@ -385,7 +385,18 @@ function abrirExtrato(tipo) {
     filtrarExtrato(tipo);
 }
 
-// ===== CONTAS E CARTÕES =====
+// ===== CONTAS E CARTÕES - ÚNICO MODAL =====
+function abrirModalContas() {
+    document.getElementById('conta-nome').value = '';
+    document.getElementById('conta-saldo').value = '';
+    document.getElementById('cartao-nome').value = '';
+    document.getElementById('cartao-fechamento').value = '';
+    document.getElementById('cartao-vencimento').value = '';
+    // Não zera arrays aqui senão apaga os existentes
+    renderTempContas();
+    renderTempCartoes();
+    abrirModal('modal-contas');
+}
 function addTempConta() {
     const nome = document.getElementById('conta-nome').value;
     const saldo = parseFloat(document.getElementById('conta-saldo').value) || 0;
