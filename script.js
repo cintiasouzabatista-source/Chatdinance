@@ -302,31 +302,6 @@ function abrirModalConta() {
     abrirModal('modal-contas');
 }
 
-function abrirModalCartao() {
-    document.getElementById('cartao-nome-input').value = '';
-    document.getElementById('cartao-limite-input').value = '';
-    document.getElementById('cartao-fechamento-input').value = '';
-    document.getElementById('cartao-vencimento-input').value = '';
-    abrirModal('modal-cartao');
-}
-
-function salvarCartao() {
-    const nome = document.getElementById('cartao-nome-input').value.trim();
-    const limite = parseFloat(document.getElementById('cartao-limite-input').value) || 0;
-    const fechamento = parseInt(document.getElementById('cartao-fechamento-input').value);
-    const vencimento = parseInt(document.getElementById('cartao-vencimento-input').value);
-
-    if (!nome ||!fechamento ||!vencimento) {
-        alert('Preenche nome, fechamento e vencimento');
-        return;
-    }
-
-    cartoes.push({ nome, limite, fechamento, vencimento });
-    salvar();
-    fecharModal('modal-cartao');
-    addMensagem(`Cartão ${nome} cadastrado`, 'system');
-    atualizar();
-}
 
 // ===== MENU MAIS =====
 function abrirMenuMais(e) {
