@@ -410,24 +410,33 @@ nav{
 
 /* MENU MAIS - ÚNICO E CORRETO */
 
+/* MENU MAIS - LATERAL DIREITA */
 .menu-mais {
     position: fixed;
     bottom: 60px;
-    left: 0;
     right: 0;
-    width: 100vw;
-    max-width: 100vw;
+    width: 280px;
+    max-width: 80vw;
     background: #1e293b;
+    border-left: 1px solid #334155;
     border-top: 1px solid #334155;
-    border-radius: 16px 16px 0 0;
+    border-radius: 16px 0 0 0;
     padding: 16px;
     z-index: 997;
     margin: 0;
     box-sizing: border-box;
+    box-shadow: -4px -4px 24px rgba(0,0,0,0.6);
+    transform: translateX(100%);
+    transition: transform 0.3s ease;
 }
 
 .menu-mais.hidden {
-    display: none;
+    display: block;
+    transform: translateX(100%);
+}
+
+.menu-mais:not(.hidden) {
+    transform: translateX(0);
 }
 
 .menu-mais-item {
@@ -441,6 +450,7 @@ nav{
     color: #f1f5f9;
     font-size: 17px;
     text-align: left;
+    border-radius: 12px;
 }
 
 .menu-mais-item:active {
@@ -456,7 +466,6 @@ nav{
 .menu-mais-item.text-rose i {
     color: #ef4444;
 }
-
 /* MODAL BASE */
 
 .modal{
