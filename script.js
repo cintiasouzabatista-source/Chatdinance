@@ -479,6 +479,81 @@ function atualizarContasModal() {
 
     select.innerHTML = opcoes.map(o => `<option value="${o.nome}">${o.nome}</option>`).join('');
 }
+
+// ===== FIX INPUT =====
+document.addEventListener('DOMContentLoaded', () => {
+    const input = document.getElementById('user-input');
+    const btn = document.getElementById('btn-enviar');
+
+    // Enter pra enviar
+    input.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            processarMensagem();
+        }
+    });
+
+    // Click no botão
+    btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        processarMensagem();
+    });
+});
+
+// Garante que a função existe
+function processarMensagem() {
+    const input = document.getElementById('user-input');
+    const texto = input.value.trim();
+    if (!texto) return;
+
+    addMensagem(texto, 'user');
+    input.value = '';
+
+    const lancamento = interpretarTexto(texto);
+    if (lancamento) {
+        dados.push(lancamento);
+        salvar();
+        atualizar();
+        addMensagem(`Lançado: ${lancamento.descricao} R$ ${lancamento.valor.toFixed(2)}`, 'system');
+    } else {
+        addMensagem('Não entendi. Ex: "mercado 150" ou "recebi 2000"', 'system');
+    }
+}
+
+function addMensagem(texto, tipo) {
+    const chat = document.getElementById('chat-box');
+    if (!chat) return;
+    const msg = document.createElement('div');
+    msg.className = `msg ${tipo}`;
+    msg.innerHTML = `<div class="msg-bubble"><p>${texto}</p></div>`;
+    chat.appendChild(msg);
+    chat.scrollTop = chat.scrollHeight;
+}
+
+function interpretarTexto(texto) {
+    const regex = /(.+?)\s+(\d+[.,]?\d*)/;
+    const match = texto.match(regex);
+    if (!match) return null;
+
+    const descricao = match[1].trim();
+    const valor = parseFloat(match[2].replace(',', '.'));
+    const tipo = /recebi|salario|entrada/i.test(texto)? 'entrada' : 'saida';
+
+    if (!contas.length) contas = [{nome: 'Principal', saldo: 0}];
+
+    return {
+        id: Date.now(),
+        descricao: descricao,
+        valor: valor,
+        tipo: tipo,
+        metodo: 'conta',
+        banco: contas[0].nome,
+        data: new Date().toISOString(),
+        categoria: tipo === 'entrada'? 'Salário' : 'Outras Despesas',
+        texto: texto
+    };
+}
+
 // Stubs que ainda faltam implementar
 function toggleProjetado() { alert('Em breve'); }
 function lerArquivoExtrato(e) { alert('Em breve'); }
