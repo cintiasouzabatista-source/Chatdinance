@@ -36,7 +36,7 @@
             <button id="btn-esqueci" onclick="esqueciPin()">Esqueceu o PIN?</button>
         </div>
     </div>
-
+  
     <div id="modal-onboarding" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -59,6 +59,9 @@
                         <p class="btn-desc">Explore sem compromisso</p>
                     </div>
                 </button>
+                <button onclick="abrirModalCartao()" class="dropdown-item">
+    <i class="fas fa-credit-card"></i> Cadastrar Cartão
+</button>
                 <button onclick="selecionarModo('producao')" class="btn-onboard bg-emerald">
                     <i class="fas fa-check-circle"></i>
                     <div>
@@ -260,7 +263,22 @@
             </div>
         </div>
     </div>
-
+<!-- Modal Cadastrar Cartão -->
+<div id="modal-cartao" class="modal-overlay hidden">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Novo Cartão</h2>
+            <button onclick="fecharModal('modal-cartao')" class="btn-close"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body">
+            <input id="cartao-nome-input" type="text" placeholder="Nome do cartão - Ex: Nubank" class="input">
+            <input id="cartao-limite-input" type="number" placeholder="Limite - Ex: 5000" class="input">
+            <input id="cartao-fechamento-input" type="number" placeholder="Dia fechamento - Ex: 5" class="input" min="1" max="31">
+            <input id="cartao-vencimento-input" type="number" placeholder="Dia vencimento - Ex: 12" class="input" min="1" max="31">
+            <button onclick="salvarCartao()" class="btn-primary">Salvar Cartão</button>
+        </div>
+    </div>
+</div>
     <script src="script.js"></script>
 </body>
 </html>
