@@ -478,26 +478,6 @@ function abrirScan() {
     });
 }
 
-let html5QrCode = null;
-
-function abrirScan() {
-    document.getElementById('modal-scan').style.display = 'flex';
-    html5QrCode = new Html5Qrcode("reader");
-
-    html5QrCode.start(
-        { facingMode: "environment" },
-        { fps: 10, qrbox: { width: 250, height: 250 } },
-        (decodedText) => {
-            processarQRCode(decodedText);
-            fecharScan();
-        },
-        (error) => {
-        }
-    ).catch(err => {
-        alert('Erro ao abrir câmera: ' + err);
-        fecharScan();
-    });
-}
 
 function fecharScan() {
     if (html5QrCode) {
