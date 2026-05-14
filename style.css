@@ -1189,44 +1189,7 @@ body.light-mode .btn-upload{
     border: 1px solid var(--border);
 }
 
-.menu-mais {
-    position: fixed;
-    bottom: 70px;
-    right: 10px;
-    left: 10px;
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 8px;
-    z-index: 1000;
-    box-shadow: 0 -4px 20px rgba(0,0,0,0.4);
-}
 
-.menu-mais.hidden {
-    display: none;
-}
-
-.menu-mais-item {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    width: 100%;
-    padding: 16px;
-    background: none;
-    border: none;
-    color: var(--text);
-    font-size: 16px;
-    border-radius: 12px;
-    text-align: left;
-}
-
-.menu-mais-item:active {
-    background: var(--bg);
-}
-
-.menu-mais-item i {
-    width: 22px;
-    font-size: 18px;
 }
 
 /* Menu Mais - CORRIGIDO */
