@@ -233,15 +233,16 @@
             <button onclick="fecharModal('modal-graficos')"><i class="fas fa-times"></i></button>
         </div>
         <div class="grafico-header">
-            <h4 id="grafico-mes"></h4>
-            <div class="grafico-tabs">
-                <button id="btn-categoria" onclick="trocarGrafico('categoria')" class="tab-active">Categoria</button>
-                <button id="btn-tipo" onclick="trocarGrafico('tipo')">Tipo</button>
-                <button id="btn-conta" onclick="trocarGrafico('conta')">Conta</button>
-                <button id="btn-receita" onclick="trocarGrafico('receita')">Receita</button>
-                <button id="btn-fluxo" onclick="trocarGrafico('fluxo')">Fluxo</button>
-            </div>
-        <div class="chart-container">
+    <h4 id="grafico-mes"></h4>
+    <div class="grafico-tabs">
+        <button id="btn-categoria" onclick="trocarGrafico('categoria')" class="tab-active">Categoria</button>
+        <button id="btn-tipo" onclick="trocarGrafico('tipo')">Tipo</button>
+        <button id="btn-conta" onclick="trocarGrafico('conta')">Conta</button>
+        <button id="btn-receita" onclick="trocarGrafico('receita')">Receita</button>
+        <button id="btn-fluxo" onclick="trocarGrafico('fluxo')">Fluxo</button>
+    </div>
+</div> <!-- FECHA AQUI -->
+<div class="chart-container">
             <canvas id="grafico-canvas"></canvas>
         </div>
         <div id="grafico-legenda" class="grafico-legenda"></div>
