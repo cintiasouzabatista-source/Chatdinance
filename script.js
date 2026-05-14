@@ -211,29 +211,67 @@ function processarMensagem() {
 }
 
 function interpretarTexto(texto) {
-    const regex = /(.+?)\s+(\d+[.,]?\d*)/;
-    const match = texto.match(regex);
-    if (!match) return null;
+    const regexValor = /(\d+[.,]?\d*)/;
+    const matchValor = texto.match(regexValor);
+    if (!matchValor) return null;
 
-    const descricao = match[1].trim();
-    const valor = parseFloat(match[2].replace(',', '.'));
+    const valor = parseFloat(matchValor[1].replace(',', '.'));
+    const descricao = texto.replace(matchValor[0], '').trim();
+
+    // Detecta parcelado: "tv 1200 em 12x" ou "iphone 6000 10x"
+    const regexParcela = /(\d+)\s*x/i;
+    const matchParcela = texto.match(regexParcela);
+    const parcelas = matchParcela? parseInt(matchParcela[1]) : 1;
+
+    // Detecta método: cartão ou conta
+    const metodo = /cartao|credito|cartão/i.test(texto)? 'cartao' : 'conta';
     const tipo = /recebi|salario|entrada/i.test(texto)? 'entrada' : 'saida';
 
     if (!contas.length) contas = [{nome: 'Principal', saldo: 0}];
+    if (metodo === 'cartao' &&!cartoes.length) cartoes = [{nome: 'Cartão Principal'}];
+
+    const banco = metodo === 'cartao'? cartoes[0].nome : contas[0].nome;
+
+    if (parcelas > 1) {
+        const valorParcela = valor / parcelas;
+        const lancamentos = [];
+        for (let i = 0; i < parcelas; i++) {
+            const dataParcela = new Date();
+            dataParcela.setMonth(dataParcela.getMonth() + i);
+            lancamentos.push({
+                id: Date.now() + i,
+                descricao: `${descricao} ${i+1}/${parcelas}`,
+                valor: valorParcela,
+                tipo: tipo,
+                metodo: metodo,
+                banco: banco,
+                data: dataParcela.toISOString(),
+                categoria: 'Parcelado',
+                texto: texto,
+                parcela: i+1,
+                totalParcelas: parcelas
+            });
+        }
+        // Adiciona todas as parcelas
+        dados.push(...lancamentos);
+        salvar();
+        atualizar();
+        addMensagem(`Lançado: ${descricao} em ${parcelas}x de R$ ${valorParcela.toFixed(2)}`, 'system');
+        return null; // Já lançou, não precisa retornar
+    }
 
     return {
         id: Date.now(),
         descricao: descricao,
         valor: valor,
         tipo: tipo,
-        metodo: 'conta',
-        banco: contas[0].nome,
+        metodo: metodo,
+        banco: banco,
         data: new Date().toISOString(),
         categoria: tipo === 'entrada'? 'Salário' : 'Outras Despesas',
         texto: texto
     };
 }
-
 function addMensagem(texto, tipo) {
     const chat = document.getElementById('chat-box');
     if (!chat) return;
@@ -242,6 +280,55 @@ function addMensagem(texto, tipo) {
     msg.innerHTML = `<div class="msg-bubble"><p>${texto}</p></div>`;
     chat.appendChild(msg);
     chat.scrollTop = chat.scrollHeight;
+}
+// ===== CADASTRO CARTÃO COMPLETO =====
+function abrirModalCartao() {
+    document.getElementById('cartao-nome-input').value = '';
+    document.getElementById('cartao-limite-input').value = '';
+    document.getElementById('cartao-fechamento-input').value = '';
+    document.getElementById('cartao-vencimento-input').value = '';
+    abrirModal('modal-cartao');
+}
+
+function salvarCartao() {
+    const nome = document.getElementById('cartao-nome-input').value.trim();
+    const limite = parseFloat(document.getElementById('cartao-limite-input').value) || 0;
+    const fechamento = parseInt(document.getElementById('cartao-fechamento-input').value);
+    const vencimento = parseInt(document.getElementById('cartao-vencimento-input').value);
+
+    if (!nome ||!fechamento ||!vencimento) {
+        alert('Preenche nome, fechamento e vencimento');
+        return;
+    }
+
+    cartoes.push({ nome, limite, fechamento, vencimento });
+    salvar();
+    fecharModal('modal-cartao');
+    addMensagem(`Cartão ${nome} cadastrado`, 'system');
+    atualizar();
+}
+
+function listarCartoes() {
+    const lista = document.getElementById('lista-cartoes');
+    if (!lista) return;
+
+    lista.innerHTML = cartoes.map((c, i) => `
+        <div class="item-lista">
+            <div>
+                <strong>${c.nome}</strong><br>
+                <small>Fecha dia ${c.fechamento} | Vence dia ${c.vencimento} | Limite R$ ${c.limite.toFixed(2)}</small>
+            </div>
+            <button onclick="excluirCartao(${i})" class="btn-danger"><i class="fas fa-trash"></i></button>
+        </div>
+    `).join('');
+}
+
+function excluirCartao(index) {
+    if (confirm('Excluir este cartão? Lançamentos não serão apagados.')) {
+        cartoes.splice(index, 1);
+        salvar();
+        listarCartoes();
+    }
 }
 
 // ===== MÊS E CARDS =====
