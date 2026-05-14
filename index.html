@@ -11,8 +11,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="BankDay Pro">
-   <link rel="manifest" href="./manifest.json" crossorigin="use-credentials">
-<link rel="manifest" href="./manifest.json">
+    <link rel="manifest" href="./manifest.json" crossorigin="use-credentials">
     <link rel="apple-touch-icon" href="icons/icon-192x192.png">
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -40,23 +39,6 @@
     </div>
 </div>
 
-<div class="bg-slate-900 p-6 rounded-xl border border-slate-800">
-  <p class="text-gray-400 text-sm text-center">Saldo Final</p>
-  <h2 class="text-3xl font-bold text-red-500 text-center">R$ -1016,00</h2>
-  
-  <div class="mt-4 pt-4 border-t border-slate-800 flex flex-col gap-2">
-    <input 
-      type="number" 
-      placeholder="Digite o saldo do banco..." 
-      class="bg-slate-950 border border-slate-700 rounded p-2 text-sm text-white outline-none focus:border-blue-500"
-    />
-    <p class="text-xs text-gray-500 italic">
-      Diferença: <span class="font-bold text-red-400">R$ -1016,00</span>
-    </p>
-  </div>
-</div>
-
-    
 <!-- ONBOARDING -->
 <div id="modal-onboarding" class="modal">
     <div class="modal-content">
@@ -66,27 +48,19 @@
             <p>Como você quer começar?</p>
         </div>
         <div class="modal-body">
-            <button onclick="abrirScan()" class="bg-blue-600 p-3 rounded-lg">
-    <i class="fas fa-qrcode"></i>
-</button>
+            <button onclick="abrirScan()" class="btn-onboard bg-blue-600">
+                <i class="fas fa-qrcode"></i>
+                <div>
+                    <p class="btn-title">Escanear QR Code</p>
+                    <p class="btn-desc">Ler boleto Pix</p>
+                </div>
+            </button>
             <button onclick="selecionarModo('teste')" class="btn-onboard bg-amber">
                 <i class="fas fa-flask"></i>
                 <div>
                     <p class="btn-title">Testar por 48h</p>
                     <p class="btn-desc">Explore sem compromisso</p>
                 </div>
-                <div id="modal-scan" class="modal">
-    <div class="modal-content max-w-md">
-        <div class="flex justify-between items-center mb-4">
-            <h3 class="text-lg font-bold">Escanear QR Code</h3>
-            <button onclick="fecharScan()" class="text-slate-400">
-                <i class="fas fa-times text-xl"></i>
-            </button>
-        </div>
-        <div id="reader" class="w-full rounded-lg overflow-hidden"></div>
-        <p class="text-xs text-slate-400 mt-3 text-center">Aponte para o QR Code do boleto Pix</p>
-    </div>
-</div>
             </button>
             <button onclick="selecionarModo('producao')" class="btn-onboard bg-emerald">
                 <i class="fas fa-check-circle"></i>
@@ -144,6 +118,9 @@
     <main id="chat-box"></main>
 
     <footer>
+        <button onclick="abrirScan()" class="bg-blue-600 p-3 rounded-lg mr-2">
+            <i class="fas fa-qrcode"></i>
+        </button>
         <input id="user-input" type="text" placeholder="Ex: cafe 15 | recebi 500">
         <button id="btn-enviar" onclick="processarMensagem()"><i class="fas fa-paper-plane"></i></button>
     </footer>
@@ -170,6 +147,21 @@
     </div>
 </div>
 
+<!-- MODAL SCAN - FORA DE QUALQUER BOTÃO -->
+<div id="modal-scan" class="modal">
+    <div class="modal-content max-w-md">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-bold">Escanear QR Code</h3>
+            <button onclick="fecharScan()" class="text-slate-400">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+        <div id="reader" class="w-full rounded-lg overflow-hidden"></div>
+        <p class="text-xs text-slate-400 mt-3 text-center">Aponte para o QR Code do boleto Pix</p>
+    </div>
+</div>
+
+<!-- MODAL IMPORTAR -->
 <div id="modal-importar" class="modal">
     <div class="modal-content">
         <div class="modal-head">
@@ -186,7 +178,6 @@
                 </div>
             </div>
 
-            <!-- ISSO AQUI QUE FALTAVA -->
             <input type="file" id="arquivo-extrato" accept=".csv,.ofx" style="display:none" onchange="lerArquivoExtrato(event)">
             
             <button onclick="document.getElementById('arquivo-extrato').click()" class="btn-upload">
@@ -200,17 +191,14 @@
             <textarea id="texto-importacao" placeholder="DD/MM/AAAA DESCRIÇÃO VALOR C/D" rows="6"></textarea>
             
             <div class="modal-actions">
-                <button onclick="fecharModal('modal-importar')" class="btn-cancelar">
-                    Cancelar
-                </button>
-                <button onclick="executarImportacao()" class="btn-save">
-                    Importar texto
-                </button>
+                <button onclick="fecharModal('modal-importar')" class="btn-cancelar">Cancelar</button>
+                <button onclick="executarImportacao()" class="btn-save">Importar texto</button>
             </div>
         </div>
     </div>
 </div>
-<!-- MODAL EXTRATO (CORRIGIDO) -->
+
+<!-- MODAL EXTRATO -->
 <div id="modal-extrato" class="modal">
     <div class="modal-content full">
         <div class="modal-head">
@@ -245,10 +233,12 @@
         <div class="grafico-header">
             <h4 id="grafico-mes"></h4>
             <div class="grafico-tabs">
-                <button id="btn-cat" onclick="trocarGrafico('categoria')" class="tab-active">Categoria</button>
+                <button id="btn-categoria" onclick="trocarGrafico('categoria')" class="tab-active">Categoria</button>
                 <button id="btn-tipo" onclick="trocarGrafico('tipo')">Tipo</button>
+                <button id="btn-conta" onclick="trocarGrafico('conta')">Conta</button>
+                <button id="btn-receita" onclick="trocarGrafico('receita')">Receita</button>
+                <button id="btn-fluxo" onclick="trocarGrafico('fluxo')">Fluxo</button>
             </div>
-        </div>
         <div class="chart-container">
             <canvas id="grafico-canvas"></canvas>
         </div>
