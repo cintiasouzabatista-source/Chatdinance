@@ -456,6 +456,92 @@ function executarImportacao() {
     }
 }
 
+let html5QrCode = null;
+
+function abrirScan() {
+    document.getElementById('modal-scan').style.display = 'flex';
+    html5QrCode = new Html5Qrcode("reader");
+
+    html5QrCode.start(
+        { facingMode: "environment" }, // câmera traseira
+        { fps: 10, qrbox: { width: 250, height: 250 } },
+        (decodedText) => {
+            // QR Code lido com sucesso
+            processarQRCode(decodedText);
+            fecharScan();
+        },
+        (error) => {
+            // ignora erros de leitura
+        }
+    ).catch(err => {
+        alert('Erro ao abrir câmera: ' + err);
+        fecharScan();
+    });
+}
+
+function fecharScan() {
+    if (html5QrCode) {
+        html5QrCode.stop().then(() => {
+            document.getElementById('modal-scan').style.display = 'none';
+            html5QrCode = null;
+        }).catch(() => {
+            document.getElementById('modal-scan').style.display = 'none';
+        });
+    } else {
+        document.getElementById('modal-scan').style.display = 'none';
+    }
+}
+
+function processarQRCode(texto) {
+    console.log('QR Code lido:', texto);
+
+    // QR Code Pix começa com 000201
+    if (texto.startsWith('000201')) {
+        const dados = parsePixQRCode(texto);
+        if (dados) {
+            const confirmar = confirm(`Boleto detectado:\n\nBeneficiário: ${dados.beneficiario}\nValor: R$ ${dados.valor.toFixed(2)}\n\nLançar como despesa?`);
+            if (confirmar) {
+                dados.push({
+                    id: Date.now(),
+                    descricao: `Boleto ${dados.beneficiario}`,
+                    valor: dados.valor,
+                    tipo: 'saida',
+                    metodo: 'conta',
+                    banco: contas[0]?.nome || 'Principal',
+                    data: new Date().toISOString(),
+                    categoria: 'Outras Despesas',
+                    texto: texto
+                });
+                salvar();
+                atualizar();
+                addMensagem(`Boleto lançado: R$ ${dados.valor.toFixed(2)}`, 'system');
+            }
+        } else {
+            alert('QR Code Pix não reconhecido');
+        }
+    } else {
+        alert('QR Code não é de boleto Pix');
+    }
+}
+
+function parsePixQRCode(qr) {
+    try {
+        // Pega valor - campo 54
+        const valorMatch = qr.match(/54(\d{2})(\d+\.?\d*)/);
+        const valor = valorMatch? parseFloat(valorMatch[2]) : 0;
+
+        // Pega nome beneficiário - campo 59
+        const nomeMatch = qr.match(/59(\d{2})([^0-9]{2,})/);
+        const beneficiario = nomeMatch? nomeMatch[2].substring(0, parseInt(nomeMatch[1])) : 'Desconhecido';
+
+        if (valor > 0) {
+            return { valor, beneficiario };
+        }
+    } catch (e) {
+        console.error('Erro parse QR:', e);
+    }
+    return null;
+}
 // INICIALIZAÇÃO
 document.addEventListener('DOMContentLoaded', () => {
     if (localStorage.getItem('bankday_tema') === 'light') toggleTheme();
