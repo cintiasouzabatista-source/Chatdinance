@@ -742,3 +742,23 @@ function resetarApp() {
         location.reload();
     }
 }
+
+function addMensagem(texto, tipo) {
+    const chat = document.getElementById('chat-box');
+    if (!chat) return;
+    
+    const msg = document.createElement('div');
+    msg.className = `msg ${tipo}`;
+    msg.innerHTML = `<div class="msg-bubble"><p>${texto}</p></div>`;
+    chat.appendChild(msg);
+    chat.scrollTop = chat.scrollHeight;
+
+    // Some em 8 segundos se for system
+    if (tipo === 'system') {
+        setTimeout(() => {
+            msg.style.transition = 'opacity 0.5s';
+            msg.style.opacity = '0';
+            setTimeout(() => msg.remove(), 500);
+        }, 8000);
+    }
+}
