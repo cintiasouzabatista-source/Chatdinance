@@ -117,13 +117,15 @@
 
     <main id="chat-box"></main>
 
-    <footer>
-        <button onclick="abrirScan()" class="bg-blue-600 p-3 rounded-lg mr-2">
-            <i class="fas fa-qrcode"></i>
-        </button>
-        <input id="user-input" type="text" placeholder="Ex: cafe 15 | recebi 500">
-        <button id="btn-enviar" onclick="processarMensagem()"><i class="fas fa-paper-plane"></i></button>
-    </footer>
+   <footer class="chat-footer">
+    <button onclick="abrirScan()" class="btn-scan">
+        <i class="fas fa-qrcode"></i>
+    </button>
+    <input id="user-input" type="text" placeholder="Ex: cafe 15 | recebi 500">
+    <button id="btn-enviar" onclick="processarMensagem()">
+        <i class="fas fa-paper-plane"></i>
+    </button>
+</footer>
 
     <nav>
         <button class="nav-item active" onclick="trocarAba('chat', event)">
