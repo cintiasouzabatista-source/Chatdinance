@@ -1229,19 +1229,19 @@ body.light-mode .btn-upload{
     font-size: 18px;
 }
 
-/* Menu Mais corrigido */
+/* Menu Mais - CORRIGIDO */
 .menu-mais {
     position: fixed;
-    bottom: 65px; /* sobe acima da nav */
-    right: 10px;
-    left: 10px;
+    bottom: 60px; /* Fica acima da nav */
+    left: 0;
+    right: 0;
     background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 8px;
-    z-index: 999; /* abaixo do footer */
-    box-shadow: 0 -8px 32px rgba(0,0,0,0.5);
-    max-height: 60vh;
+    border-top: 1px solid var(--border);
+    border-radius: 16px 16px 0 0;
+    padding: 12px 16px 8px;
+    z-index: 997; /* Abaixo do footer */
+    box-shadow: 0 -4px 24px rgba(0,0,0,0.6);
+    max-height: 50vh;
     overflow-y: auto;
 }
 
@@ -1254,7 +1254,7 @@ body.light-mode .btn-upload{
     align-items: center;
     gap: 16px;
     width: 100%;
-    padding: 18px;
+    padding: 18px 12px;
     background: none;
     border: none;
     color: var(--text);
@@ -1264,15 +1264,35 @@ body.light-mode .btn-upload{
 }
 
 .menu-mais-item:active {
-    background: rgba(255,255,255,0.1);
+    background: rgba(255,255,255,0.08);
 }
 
 .menu-mais-item i {
     width: 24px;
     font-size: 20px;
     color: var(--primary);
+    text-align: center;
 }
 
+.menu-mais-item.text-rose i {
+    color: #ef4444;
+}
+
+/* Garante ordem correta das camadas */
+.chat-footer {
+    position: relative;
+    z-index: 1000; /* Footer sempre por cima */
+}
+
+nav {
+    position: relative;
+    z-index: 998;
+}
+
+#chat-box {
+    position: relative;
+    z-index: 1;
+}
 /* Garante que footer fica por cima */
 .chat-footer {
     position: relative;
