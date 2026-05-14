@@ -188,6 +188,7 @@ header{
     grid-template-columns:1fr 1fr;
     gap:10px;
     margin-top:12px;
+    padding:0 0 12px;
 }
 
 .card-item{
@@ -224,15 +225,10 @@ header{
     border-radius:16px;
     padding:16px;
     margin-top:2px;
+    text-align:center;
 }
 
-.card-liquido-top{
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-}
-
-.card-liquido-top p{
+.card-liquido p{
     font-size:11px;
     color:#64748b;
     font-weight:500;
@@ -258,6 +254,7 @@ main{
     overflow-y:auto;
     padding:16px;
     background:#0a0e1a;
+    padding-bottom:140px;
 }
 
 /* CHAT */
@@ -316,40 +313,71 @@ main{
     font-weight:700;
 }
 
-/* FOOTER */
+/* FOOTER CHAT */
 
-footer{
-    flex-shrink:0;
-    background:#0f172a;
-    border-top:1px solid #1e293b;
+.chat-footer{
+    position:fixed;
+    bottom:60px;
+    left:0;
+    right:0;
     padding:12px 16px;
+    background:#1e293b;
+    border-top:1px solid #334155;
     display:flex;
     gap:8px;
+    z-index:50;
 }
 
-footer input{
-    flex:1;
-    background:#1e293b;
-    border:1px solid #334155;
-    border-radius:12px;
-    padding:12px 16px;
-    font-size:15px;
-    color:#f1f5f9;
+.light-mode .chat-footer{
+    background:#f8fafc;
+    border-top:1px solid #e2e8f0;
 }
 
-footer input:focus{
-    border-color:#3b82f6;
-}
-
-footer button{
-    width:48px;
-    height:48px;
-    background:linear-gradient(135deg,#3b82f6 0%,#2563eb 100%);
-    border-radius:12px;
+.btn-scan{
+    background:#2563eb;
+    color:white;
+    padding:12px;
+    border-radius:8px;
+    border:none;
+    font-size:18px;
     display:flex;
     align-items:center;
     justify-content:center;
-    box-shadow:0 2px 8px rgba(59,130,246,.4);
+    min-width:48px;
+}
+
+.btn-scan:active{
+    background:#1d4ed8;
+}
+
+#user-input{
+    flex:1;
+    background:#0f172a;
+    border:1px solid #334155;
+    border-radius:8px;
+    padding:12px;
+    color:#f1f5f9;
+    font-size:16px;
+}
+
+.light-mode #user-input{
+    background:white;
+    border:1px solid #cbd5e1;
+    color:#1e293b;
+}
+
+#btn-enviar{
+    background:#2563eb;
+    color:white;
+    padding:12px;
+    border-radius:8px;
+    border:none;
+    font-size:18px;
+    min-width:48px;
+}
+
+#btn-enviar:active{
+    background:#1d4ed8;
 }
 
 /* NAV */
@@ -361,6 +389,11 @@ nav{
     display:flex;
     justify-content:space-around;
     padding:8px 0;
+    position:fixed;
+    bottom:0;
+    left:0;
+    right:0;
+    z-index:60;
 }
 
 .nav-item{
@@ -594,14 +627,51 @@ nav{
     color:#475569;
 }
 
-/* MODAL EXTRATO - NOVO */
-
-.extrato-modal{
-    max-width:500px;
-    height:90vh;
+.btn-upload{
+    width:100%;
+    padding:16px;
+    background:#3b82f6;
+    border:none;
+    border-radius:12px;
+    color:white;
+    font-weight:700;
+    font-size:15px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:10px;
+    margin-bottom:16px;
+    cursor:pointer;
 }
 
-.extrato-filters{
+.btn-upload:active{
+    background:#2563eb;
+}
+
+.divider-text{
+    text-align:center;
+    color:#64748b;
+    font-size:13px;
+    margin:16px 0;
+    position:relative;
+}
+
+.divider-text::before,
+.divider-text::after{
+    content:'';
+    position:absolute;
+    top:50%;
+    width:40%;
+    height:1px;
+    background:#334155;
+}
+
+.divider-text::before{left:0;}
+.divider-text::after{right:0;}
+
+/* MODAL EXTRATO */
+
+.modal-filters{
     display:flex;
     gap:8px;
     padding:12px 20px;
@@ -609,16 +679,8 @@ nav{
     flex-shrink:0;
 }
 
-.filter-group{
+.modal-filters select{
     flex:1;
-    position:relative;
-}
-
-.filter-btn{
-    width:100%;
-    display:flex;
-    align-items:center;
-    gap:6px;
     padding:10px 12px;
     background:#0f172a;
     border:1px solid #334155;
@@ -626,98 +688,6 @@ nav{
     color:#cbd5e1;
     font-size:13px;
     font-weight:600;
-    cursor:pointer;
-}
-
-.filter-btn:active{
-    background:#1e293b;
-}
-
-.filter-btn i:first-child{
-    font-size:12px;
-    color:#64748b;
-}
-
-.filter-btn span{
-    flex:1;
-    text-align:left;
-    white-space:nowrap;
-    overflow:hidden;
-    text-overflow:ellipsis;
-}
-
-.filter-btn i:last-child{
-    font-size:10px;
-    color:#64748b;
-}
-
-.filter-dropdown{
-    position:absolute;
-    top:calc(100% + 4px);
-    left:0;
-    right:0;
-    background:#1e293b;
-    border:1px solid #334155;
-    border-radius:10px;
-    z-index:10;
-    overflow:hidden;
-    box-shadow:0 4px 12px rgba(0,0,0,.3);
-}
-
-.filter-dropdown button{
-    width:100%;
-    padding:12px;
-    background:transparent;
-    border:none;
-    color:#cbd5e1;
-    font-size:14px;
-    text-align:left;
-    cursor:pointer;
-    border-bottom:1px solid #334155;
-}
-
-.filter-dropdown button:last-child{
-    border-bottom:none;
-}
-
-.filter-dropdown button:active{
-    background:#0f172a;
-}
-
-.extrato-resumo{
-    display:grid;
-    grid-template-columns:repeat(3,1fr);
-    gap:1px;
-    background:#334155;
-    padding:0;
-    flex-shrink:0;
-}
-
-.resumo-item{
-    background:#1e293b;
-    padding:14px 12px;
-    text-align:center;
-}
-
-.resumo-item span{
-    display:block;
-    font-size:11px;
-    color:#94a3b8;
-    margin-bottom:4px;
-    text-transform:uppercase;
-    font-weight:600;
-}
-
-.resumo-item strong{
-    display:block;
-    font-size:16px;
-    font-weight:800;
-}
-
-.extrato-lista{
-    flex:1;
-    overflow-y:auto;
-    padding:8px;
 }
 
 .extrato-item{
@@ -865,6 +835,56 @@ nav{
     flex:2;
 }
 
+/* MODAL GRAFICOS */
+
+.grafico-header{
+    padding:16px 20px 12px;
+    border-bottom:1px solid #334155;
+}
+
+.grafico-header h4{
+    font-size:16px;
+    font-weight:700;
+    margin:0 0 12px 0;
+    text-align:center;
+}
+
+.grafico-tabs{
+    display:flex;
+    gap:8px;
+    overflow-x:auto;
+    padding-bottom:4px;
+}
+
+.grafico-tabs button{
+    flex:1;
+    padding:8px 12px;
+    background:#0f172a;
+    border:1px solid #334155;
+    border-radius:8px;
+    color:#94a3b8;
+    font-size:13px;
+    font-weight:600;
+    white-space:nowrap;
+}
+
+.grafico-tabs button.tab-active{
+    background:#3b82f6;
+    border-color:#3b82f6;
+    color:white;
+}
+
+.chart-container{
+    padding:20px;
+    height:300px;
+}
+
+.grafico-legenda{
+    padding:0 20px 20px;
+    max-height:200px;
+    overflow-y:auto;
+}
+
 /* MENU */
 
 .menu-dropdown{
@@ -994,7 +1014,7 @@ body.light-mode main{
 }
 
 body.light-mode header,
-body.light-mode footer,
+body.light-mode .chat-footer,
 body.light-mode nav,
 body.light-mode .modal-content,
 body.light-mode .card-item,
@@ -1006,8 +1026,7 @@ body.light-mode footer input,
 body.light-mode .modal-body input,
 body.light-mode .modal-body select,
 body.light-mode .item-temp,
-body.light-mode .filter-btn,
-body.light-mode .filter-dropdown,
+body.light-mode .modal-filters select,
 body.light-mode .extrato-item,
 body.light-mode .import-format,
 body.light-mode #texto-importacao{
@@ -1033,8 +1052,8 @@ body.light-mode .import-info p{
 
 body.light-mode .modal-head,
 body.light-mode .modal-footer,
-body.light-mode .extrato-filters,
-body.light-mode .filter-dropdown button{
+body.light-mode .modal-filters,
+body.light-mode .grafico-header{
     border-color:#e2e8f0;
 }
 
@@ -1048,14 +1067,6 @@ body.light-mode .form-group select{
     background:#f8fafc;
 }
 
-body.light-mode .extrato-resumo{
-    background:#e2e8f0;
-}
-
-body.light-mode .resumo-item{
-    background:#ffffff;
-}
-
 body.light-mode .btn-cancelar{
     border-color:#cbd5e1;
     color:#475569;
@@ -1065,165 +1076,15 @@ body.light-mode .import-format code{
     color:#0891b2;
 }
 
-body.light-mode .filter-dropdown button:active{
-    background:#f8fafc;
-}
-
 body.light-mode .extrato-item:active{
     background:#f8fafc;
 }
 
-.btn-upload {
-    width: 100%;
-    padding: 16px;
-    background: #3b82f6;
-    border: none;
-    border-radius: 12px;
-    color: white;
-    font-weight: 700;
-    font-size: 15px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    margin-bottom: 16px;
-    cursor: pointer;
+body.light-mode .divider-text::before,
+body.light-mode .divider-text::after{
+    background:#cbd5e1;
 }
 
-.btn-upload:active {
-    background: #2563eb;
-}
-
-.divider-text {
-    text-align: center;
-    color: #64748b;
-    font-size: 13px;
-    margin: 16px 0;
-    position: relative;
-}
-
-.divider-text::before,
-.divider-text::after {
-    content: '';
-    position: absolute;
-    top: 50%;
-    width: 40%;
-    height: 1px;
-    background: #334155;
-}
-
-.divider-text::before { left: 0; }
-.divider-text::after { right: 0; }
-
-body.light-mode.btn-upload {
-    background: #3b82f6;
-}
-
-body.light-mode.divider-text::before,
-body.light-mode.divider-text::after {
-    background: #cbd5e1;
-}
-
-.cards-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-    padding: 10px;
-}
-
-.list-temp {
-    max-height: 150px;
-    overflow-y: auto;
-    margin-bottom: 12px;
-}
-
-.item-temp {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 8px 12px;
-    background: var(--hover);
-    border-radius: 8px;
-    margin-bottom: 6px;
-    font-size: 13px;
-}
-
-.item-temp button {
-    background: none;
-    border: none;
-    color: var(--danger);
-    cursor: pointer;
-    padding: 4px 8px;
-}
-
-/* O card de Saldo Final deve ocupar as duas colunas */
-.card-liquido {
-    grid-column: span 2;
-    text-align: center;
-    /* adicione seu estilo de cor aqui */
-}
-
-.chat-footer {
-    position: fixed;
-    bottom: 60px;
-    left: 0;
-    right: 0;
-    padding: 12px 16px;
-    background: #1e293b;
-    border-top: 1px solid #334155;
-    display: flex;
-    gap: 8px;
-    z-index: 50;
-}
-
-.light-mode .chat-footer {
-    background: #f8fafc;
-    border-top: 1px solid #e2e8f0;
-}
-
-.btn-scan {
-    background: #2563eb;
-    color: white;
-    padding: 12px;
-    border-radius: 8px;
-    border: none;
-    font-size: 18px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 48px;
-}
-
-.btn-scan:active {
-    background: #1d4ed8;
-}
-
-#user-input {
-    flex: 1;
-    background: #0f172a;
-    border: 1px solid #334155;
-    border-radius: 8px;
-    padding: 12px;
-    color: #f1f5f9;
-    font-size: 16px;
-}
-
-.light-mode #user-input {
-    background: white;
-    border: 1px solid #cbd5e1;
-    color: #1e293b;
-}
-
-#btn-enviar {
-    background: #2563eb;
-    color: white;
-    padding: 12px;
-    border-radius: 8px;
-    border: none;
-    font-size: 18px;
-    min-width: 48px;
-}
-
-#btn-enviar:active {
-    background: #1d4ed8;
+body.light-mode .btn-upload{
+    background:#3b82f6;
 }
