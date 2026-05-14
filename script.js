@@ -292,7 +292,16 @@ function addMensagem(texto, tipo) {
     }
 } // <-- CHAVE QUE FALTAVA
 
-// ===== CADASTRO CARTÃO =====
+function abrirModalConta() {
+    document.getElementById('conta-nome').value = '';
+    document.getElementById('conta-saldo').value = '';
+    contas = []; // limpa temp
+    cartoes = []; // limpa temp
+    renderTempContas();
+    renderTempCartoes();
+    abrirModal('modal-contas');
+}
+
 function abrirModalCartao() {
     document.getElementById('cartao-nome-input').value = '';
     document.getElementById('cartao-limite-input').value = '';
