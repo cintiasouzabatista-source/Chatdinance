@@ -59,9 +59,6 @@
                         <p class="btn-desc">Explore sem compromisso</p>
                     </div>
                 </button>
-                <button onclick="abrirModalCartao()" class="dropdown-item">
-    <i class="fas fa-credit-card"></i> Cadastrar Cartão
-</button>
                 <button onclick="selecionarModo('producao')" class="btn-onboard bg-emerald">
                     <i class="fas fa-check-circle"></i>
                     <div>
@@ -80,7 +77,6 @@
                 <div class="header-actions">
                     <button onclick="toggleTheme()"><i id="theme-icon" class="fas fa-moon"></i></button>
                     <button onclick="toggleVisibility()"><i id="eye-icon" class="fas fa-eye"></i></button>
-                    <button onclick="toggleMenu()" id="btnMenu"><i class="fas fa-ellipsis-v"></i></button>
                 </div>
             </div>
 
@@ -114,16 +110,19 @@
             </div>
         </header>
 
-        <main id="chat-box">
-            </main>
+        <main id="chat-box"></main>
 
         <footer class="chat-footer">
             <button onclick="abrirScan()" class="btn-scan" title="Escanear Pix">
                 <i class="fas fa-qrcode"></i>
             </button>
             <input id="user-input" type="text" placeholder="Ex: cafe 15 | recebi 500">
-            <button id="btn-enviar" onclick="enviarMensagem()">
+            <button id="btn-enviar">
                 <i class="fas fa-paper-plane"></i>
+            </button>
+            <button onclick="toggleMenuMais()" class="btn-mais">
+                <i class="fas fa-ellipsis-h"></i>
+                <span>Mais</span>
             </button>
         </footer>
 
@@ -139,13 +138,23 @@
             </button>
         </nav>
 
-        <div id="menuDropdown" class="menu-dropdown hidden">
-            <button onclick="abrirModal('modal-contas')"><i class="fas fa-university"></i> Contas</button>
-            <button onclick="toggleProjetado()" id="btnProjetado"><i class="fas fa-chart-line"></i> Projeção</button>
-            <button onclick="abrirModal('modal-importar')"><i class="fas fa-file-import"></i> Importar</button>
-            <div class="menu-divider"></div>
-            <button onclick="resetarTransacoes()"><i class="fas fa-broom"></i> Limpar Tudo</button>
-            <button onclick="resetarApp()" class="text-rose"><i class="fas fa-trash"></i> Resetar App</button>
+        <!-- Menu Mais que abre de baixo pra cima -->
+        <div id="menu-mais" class="menu-mais hidden">
+            <button onclick="abrirModalCartao(); toggleMenuMais()" class="menu-mais-item">
+                <i class="fas fa-credit-card"></i> Cadastrar Cartão
+            </button>
+            <button onclick="abrirModal('modal-contas'); toggleMenuMais()" class="menu-mais-item">
+                <i class="fas fa-university"></i> Cadastrar Conta
+            </button>
+            <button onclick="abrirModal('modal-importar'); toggleMenuMais()" class="menu-mais-item">
+                <i class="fas fa-file-import"></i> Importar Extrato
+            </button>
+            <button onclick="toggleProjetado(); toggleMenuMais()" class="menu-mais-item">
+                <i class="fas fa-chart-line"></i> Projeção
+            </button>
+            <button onclick="resetarTransacoes(); toggleMenuMais()" class="menu-mais-item">
+                <i class="fas fa-broom"></i> Limpar Lançamentos
+            </button>
         </div>
     </div>
 
@@ -175,9 +184,8 @@
                 <button onclick="document.getElementById('arquivo-extrato').click()" class="btn-upload">
                     <i class="fas fa-file-upload"></i> Selecionar arquivo CSV/OFX
                 </button>
-                <button onclick="configurarPin()"><i class="fas fa-key"></i> Configurar PIN</button>
                 <div class="divider-text">ou cole o texto abaixo</div>
-                <textarea id="texto-importacao" placeholder="DD/MM/AAAA DESCRIÇÃO VALOR" rows="6"></textarea>
+                <textarea id="import-texto" placeholder="DD/MM/AAAA;DESCRIÇÃO;VALOR;TIPO" rows="6"></textarea>
                 <div class="modal-actions">
                     <button onclick="fecharModal('modal-importar')" class="btn-cancelar">Cancelar</button>
                     <button onclick="executarImportacao()" class="btn-save">Importar</button>
@@ -213,19 +221,17 @@
     <div id="modal-graficos" class="modal">
         <div class="modal-content full">
             <div class="modal-head">
-                <h3>Gráficos</h3>
+                <h3 id="grafico-titulo">Gráficos</h3>
                 <button onclick="fecharModal('modal-graficos')"><i class="fas fa-times"></i></button>
             </div>
             <div class="grafico-tabs">
-                <button id="btn-categoria" onclick="trocarGrafico('categoria')" class="tab-active">Cat.</button>
-                <button id="btn-tipo" onclick="trocarGrafico('tipo')">Tipo</button>
-                <button id="btn-conta" onclick="trocarGrafico('conta')">Conta</button>
-                <button id="btn-fluxo" onclick="trocarGrafico('fluxo')">Fluxo</button>
+                <button onclick="trocarGrafico('categoria')" class="tab-active">Categoria</button>
+                <button onclick="trocarGrafico('cartao')">Cartão</button>
+                <button onclick="trocarGrafico('banco')">Conta</button>
             </div>
             <div class="chart-container">
-                <canvas id="grafico-canvas"></canvas>
+                <canvas id="grafico"></canvas>
             </div>
-            <div id="grafico-legenda" class="grafico-legenda"></div>
         </div>
     </div>
 
@@ -240,8 +246,32 @@
                 <div id="lista-contas-temp" class="list-temp"></div>
                 <input type="text" id="conta-nome" placeholder="Ex: Nubank">
                 <input type="number" id="conta-saldo" placeholder="Saldo inicial" step="0.01">
-                <button onclick="addTempConta()" class="btn-add">+ Adicionar</button>
+                <button onclick="addTempConta()" class="btn-add">+ Adicionar Conta</button>
+
+                <h4 style="margin-top:20px">Seus Cartões</h4>
+                <div id="lista-cartoes-temp" class="list-temp"></div>
+                <input type="text" id="cartao-nome" placeholder="Ex: Nubank">
+                <input type="number" id="cartao-fechamento" placeholder="Dia fechamento" min="1" max="31">
+                <input type="number" id="cartao-vencimento" placeholder="Dia vencimento" min="1" max="31">
+                <button onclick="addTempCartao()" class="btn-add">+ Adicionar Cartão</button>
+
                 <button onclick="finalizarCadastro()" class="btn-save" style="margin-top:20px">Salvar Tudo</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-cartao" class="modal">
+        <div class="modal-content">
+            <div class="modal-head">
+                <h3>Novo Cartão</h3>
+                <button onclick="fecharModal('modal-cartao')"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body">
+                <input id="cartao-nome-input" type="text" placeholder="Nome do cartão - Ex: Nubank" class="input">
+                <input id="cartao-limite-input" type="number" placeholder="Limite - Ex: 5000" class="input">
+                <input id="cartao-fechamento-input" type="number" placeholder="Dia fechamento - Ex: 5" class="input" min="1" max="31">
+                <input id="cartao-vencimento-input" type="number" placeholder="Dia vencimento - Ex: 12" class="input" min="1" max="31">
+                <button onclick="salvarCartao()" class="btn-primary">Salvar Cartão</button>
             </div>
         </div>
     </div>
@@ -256,6 +286,28 @@
                 <div class="form-group"><label>Descrição</label><input type="text" id="edit-desc"></div>
                 <div class="form-group"><label>Valor</label><input type="number" id="edit-valor" step="0.01"></div>
                 <div class="form-group"><label>Data</label><input type="date" id="edit-data"></div>
+                <div class="form-group">
+                    <label>Tipo</label>
+                    <select id="edit-tipo" onchange="atualizarCategorias()">
+                        <option value="entrada">Entrada</option>
+                        <option value="saida">Saída</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Método</label>
+                    <select id="edit-metodo" onchange="atualizarContasModal()">
+                        <option value="conta">Conta</option>
+                        <option value="cartao">Cartão</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Categoria</label>
+                    <select id="edit-categoria"></select>
+                </div>
+                <div class="form-group">
+                    <label>Banco/Cartão</label>
+                    <select id="edit-banco"></select>
+                </div>
                 <div class="modal-actions">
                     <button onclick="deletarTransacao()" class="btn-delete">Excluir</button>
                     <button onclick="salvarEdicao()" class="btn-save">Salvar</button>
@@ -263,22 +315,7 @@
             </div>
         </div>
     </div>
-<!-- Modal Cadastrar Cartão -->
-<div id="modal-cartao" class="modal-overlay hidden">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h2>Novo Cartão</h2>
-            <button onclick="fecharModal('modal-cartao')" class="btn-close"><i class="fas fa-times"></i></button>
-        </div>
-        <div class="modal-body">
-            <input id="cartao-nome-input" type="text" placeholder="Nome do cartão - Ex: Nubank" class="input">
-            <input id="cartao-limite-input" type="number" placeholder="Limite - Ex: 5000" class="input">
-            <input id="cartao-fechamento-input" type="number" placeholder="Dia fechamento - Ex: 5" class="input" min="1" max="31">
-            <input id="cartao-vencimento-input" type="number" placeholder="Dia vencimento - Ex: 12" class="input" min="1" max="31">
-            <button onclick="salvarCartao()" class="btn-primary">Salvar Cartão</button>
-        </div>
-    </div>
-</div>
+
     <script src="script.js"></script>
 </body>
 </html>
