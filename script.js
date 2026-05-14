@@ -1,598 +1,415 @@
-/* BANK DAY PRO - Script Principal Ajustado */
+// ===== CONFIG E ESTADO =====
+let dados = JSON.parse(localStorage.getItem('dados') || '[]');
+let contas = JSON.parse(localStorage.getItem('contas') || '[]');
+let cartoes = JSON.parse(localStorage.getItem('cartoes') || '[]');
+let mesAtual = new Date().getMonth();
+let anoAtual = new Date().getFullYear();
+let html5QrCode = null;
 
-if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./sw.js').catch(err => console.error('SW erro:', err));
-}
-
-// VARIÁVEIS GLOBAIS E ESTADO
-let tentativasPin = 0;
-let pinBloqueadoAte = 0;
-let modoTeste = true;
-let modoProducao = false;
-
-let dados = JSON.parse(localStorage.getItem('bankday') || '[]');
-let contas = JSON.parse(localStorage.getItem('bankday_contas') || '[]');
-let cartoes = JSON.parse(localStorage.getItem('bankday_cartoes') || '[]');
-let config = JSON.parse(localStorage.getItem('bankday_config') || '{"projetarSaldo":false}');
-
-let mesAtual = new Date();
-let valoresOcultos = false;
-let editandoId = null;
-
-// UTILITÁRIOS
-const formatar = v => {
-    v = Number(v) || 0;
-    return valoresOcultos? 'R$ ••••' : `R$ ${v.toFixed(2).replace('.', ',')}`;
-};
-
-const cap = s => s? s.charAt(0).toUpperCase() + s.slice(1) : '';
-
-const CATEGORIAS = {
-    entrada: {
-        'Salário': ['salario', 'pagamento', 'freela', 'pix recebido'],
-        'Vendas': ['venda', 'vendi', 'mercado livre', 'olx'],
-        'Outras Receitas': []
-    },
-    saida: {
-        'Alimentação': ['ifood', 'mercado', 'restaurante', 'cafe', 'lanche', 'pizza', 'janta'],
-        'Transporte': ['uber', '99', 'gasolina', 'posto', 'onibus', 'pedagio'],
-        'Moradia': ['aluguel', 'luz', 'agua', 'internet', 'condominio', 'reforma'],
-        'Lazer': ['cinema', 'netflix', 'spotify', 'bar', 'festa', 'viagem', 'show'],
-        'Compras': ['shopee', 'amazon', 'roupa', 'tenis', 'presente'],
-        'Saúde': ['farmacia', 'medico', 'dentista', 'exame'],
-        'Outras Despesas': []
+// ===== INICIALIZAÇÃO =====
+document.addEventListener('DOMContentLoaded', () => {
+    if (localStorage.getItem('pin')) {
+        mostrarTelaPin();
+    } else {
+        mostrarOnboarding();
     }
-};
+    atualizarMes();
+    atualizar();
+});
 
-// PERSISTÊNCIA
-function ajustarSaldo() {
-    const saldoReal = parseFloat(prompt('Qual saldo tá no banco hoje?'));
-    const saldoApp = /* calcula saldo atual */;
-    const diff = saldoReal - saldoApp;
-    if (diff!== 0) {
-        dados.push({
-            id: Date.now(),
-            descricao: 'Ajuste de saldo',
-            valor: Math.abs(diff),
-            tipo: diff > 0? 'entrada' : 'saida',
-            metodo: 'conta',
-            banco: contas[0]?.nome,
-            data: new Date().toISOString(),
-            categoria: 'Outras Receitas'
-        });
-        salvar();
-        atualizar();
-    }
+function mostrarTelaPin() {
+    document.getElementById('tela-pin').style.display = 'flex';
+    document.getElementById('app-content').style.display = 'none';
+    setupPinInputs();
 }
 
-function salvar() {
-    localStorage.setItem('bankday', JSON.stringify(dados));
-    localStorage.setItem('bankday_contas', JSON.stringify(contas));
-    localStorage.setItem('bankday_cartoes', JSON.stringify(cartoes));
-    localStorage.setItem('bankday_config', JSON.stringify(config));
+function mostrarOnboarding() {
+    document.getElementById('tela-pin').style.display = 'none';
+    document.getElementById('modal-onboarding').style.display = 'flex';
 }
 
-function identificarCategoria(desc, tipo = 'saida') {
-    if (!desc) return tipo === 'entrada'? 'Outras Receitas' : 'Outras Despesas';
-    const d = desc.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-    const categorias = CATEGORIAS[tipo];
-    for (const [categoria, palavras] of Object.entries(categorias)) {
-        if (palavras.some(p => d.includes(p))) return categoria;
-    }
-    return tipo === 'entrada'? 'Outras Receitas' : 'Outras Despesas';
+function mostrarApp() {
+    document.getElementById('tela-pin').style.display = 'none';
+    document.getElementById('modal-onboarding').style.display = 'none';
+    document.getElementById('app-content').style.display = 'flex';
+    atualizar();
 }
 
-// MODAIS
-function abrirModal(id) {
-    const modal = document.getElementById(id);
-    if (modal) modal.style.display = 'flex';
-}
-
-function fecharModal(id) {
-    const modal = document.getElementById(id);
-    if (modal) modal.style.display = 'none';
-}
-
-// SEGURANÇA (PIN)
-function initPin() {
-    const telaPin = document.getElementById('tela-pin');
-    const PIN_SALVO = localStorage.getItem('bankday_pin');
-    const EH_PRIMEIRO =!PIN_SALVO;
-
-    if (!telaPin) return;
-    document.getElementById('pin-titulo').textContent = EH_PRIMEIRO? 'Crie seu PIN' : 'Digite seu PIN';
-
+// ===== PIN =====
+function setupPinInputs() {
     const inputs = document.querySelectorAll('.pin-input');
     inputs.forEach((input, idx) => {
-        input.value = '';
-        input.oninput = (e) => {
-            if (e.target.value.length === 1 && idx < 3) inputs[idx + 1].focus();
-            if (idx === 3 && e.target.value.length === 1) setTimeout(validarPin, 100);
-        };
+        input.addEventListener('input', (e) => {
+            if (e.target.value && idx < inputs.length - 1) {
+                inputs[idx + 1].focus();
+            }
+            if (idx === inputs.length - 1 && e.target.value) {
+                verificarPin();
+            }
+        });
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Backspace' &&!e.target.value && idx > 0) {
+                inputs[idx - 1].focus();
+            }
+        });
     });
-    telaPin.style.display = 'flex';
+    inputs[0].focus();
 }
 
-function validarPin() {
+function verificarPin() {
     const inputs = document.querySelectorAll('.pin-input');
     const pin = Array.from(inputs).map(i => i.value).join('');
-    const PIN_SALVO = localStorage.getItem('bankday_pin');
+    const pinSalvo = localStorage.getItem('pin');
 
-    if (!PIN_SALVO) {
-        localStorage.setItem('bankday_pin', btoa(pin));
-        liberarApp();
-    } else if (btoa(pin) === PIN_SALVO) {
-        liberarApp();
+    if (!pinSalvo) {
+        localStorage.setItem('pin', pin);
+        mostrarOnboarding();
+    } else if (pin === pinSalvo) {
+        mostrarApp();
     } else {
-        alert("PIN incorreto");
+        document.getElementById('pin-erro').textContent = 'PIN incorreto';
+        document.getElementById('pin-erro').classList.remove('hidden');
         inputs.forEach(i => i.value = '');
         inputs[0].focus();
     }
 }
 
-function liberarApp() {
-    const telaPin = document.getElementById('tela-pin');
-    const appContent = document.getElementById('app-content');
-    if (telaPin) telaPin.style.display = 'none';
-    if (appContent) appContent.style.display = 'flex';
-    atualizar();
-}
-
-// PROCESSAMENTO DE MENSAGENS
-function processarMensagem() {
-    const input = document.getElementById("user-input");
-    if (!input ||!input.value.trim()) return;
-
-    const textoOriginal = input.value.trim();
-    const texto = textoOriginal.toLowerCase();
-    input.value = "";
-
-    if (!contas.length) contas = [{nome: 'Principal', saldoInicial: 0}];
-
-    const tipo = (texto.includes('recebi') || texto.includes('ganhei'))? 'entrada' : 'saida';
-    const valorMatch = texto.match(/\d+(?:[.,]\d+)?/);
-
-    if (!valorMatch) {
-        addMensagem("Valor não identificado. Ex: 'cafe 15'", 'system');
-        return;
+function esqueciPin() {
+    if (confirm('Isso vai apagar todos os dados. Continuar?')) {
+        localStorage.clear();
+        location.reload();
     }
-
-    const valorNum = parseFloat(valorMatch[0].replace(',', '.'));
-    const desc = texto.replace(/recebi|gastei|paguei|\d+(?:[.,]\d+)?|reais?/gi, '').trim() || 'Lançamento';
-
-    dados.push({
-        id: Date.now(),
-        descricao: cap(desc),
-        valor: valorNum,
-        tipo: tipo,
-        metodo: 'conta',
-        banco: contas[0]?.nome || 'Principal',
-        data: new Date().toISOString(),
-        categoria: identificarCategoria(desc, tipo)
-    });
-
-    addMensagem(textoOriginal, 'user', identificarCategoria(desc, tipo));
-    salvar();
-    atualizar();
 }
 
-// INTERFACE
-function atualizar() {
-    const mes = mesAtual.getMonth();
-    const ano = mesAtual.getFullYear();
-
-    const dadosMes = dados.filter(d => {
-        const dt = new Date(d.data);
-        return dt.getMonth() === mes && dt.getFullYear() === ano;
-    });
-
-    const ent = dadosMes.filter(d => d.tipo === 'entrada').reduce((s, d) => s + d.valor, 0);
-    const sai = dadosMes.filter(d => d.tipo === 'saida' && d.metodo!== 'cartao').reduce((s, d) => s + d.valor, 0);
-    const fat = dadosMes.filter(d => d.tipo === 'saida' && d.metodo === 'cartao').reduce((s, d) => s + d.valor, 0);
-
-    const saldo = ent - sai;
-    const liquido = saldo - fat;
-
-    const ids = {
-        'card-entradas': ent, 'card-saidas': sai,
-        'card-saldo': saldo, 'card-cartoes': fat, 'card-liquido': liquido
-    };
-
-    for (const [id, val] of Object.entries(ids)) {
-        const el = document.getElementById(id);
-        if (el) el.textContent = formatar(val);
-    }
-
-    const elMes = document.getElementById('mesAtual');
-    if (elMes) elMes.textContent = cap(mesAtual.toLocaleDateString('pt-BR', {month:'long', year:'numeric'}));
-}
-
-function addMensagem(texto, tipo = 'system', info = '') {
-    const chat = document.getElementById("chat-box");
-    if (!chat) return;
-    const div = document.createElement("div");
-    div.className = `msg ${tipo}`;
-    div.innerHTML = `
-        <div class="msg-bubble">
-            <p>${texto}</p>
-            ${info? `<span class="msg-badge">${info}</span>` : ''}
-        </div>
-    `;
-    chat.appendChild(div);
-    chat.scrollTop = chat.scrollHeight;
-}
-
-function toggleTheme() {
-    document.body.classList.toggle('light-mode');
-    const isLight = document.body.classList.contains('light-mode');
-    localStorage.setItem('bankday_tema', isLight? 'light' : 'dark');
-}
-
-// IMPORTAÇÃO CSV/OFX
-function lerArquivoExtrato(event) {
-    const file = event.target.files[0];
-    if (!file) {
-        addMensagem('Nenhum arquivo selecionado', 'system');
-        return;
-    }
-    console.log('Arquivo selecionado:', file.name);
-    addMensagem(`Lendo arquivo ${file.name}...`, 'system');
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        const conteudo = e.target.result;
-        const extensao = file.name.split('.').pop().toLowerCase();
-        console.log('Conteúdo lido:', conteudo.substring(0, 200));
-        if (extensao === 'csv') {
-            importarCSV(conteudo);
-        } else if (extensao === 'ofx') {
-            importarOFX(conteudo);
-        } else {
-            addMensagem('Formato inválido. Use.csv ou.ofx', 'system');
-        }
-    };
-    reader.onerror = function() {
-        addMensagem('Erro ao ler arquivo', 'system');
-    };
-    reader.readAsText(file, 'UTF-8');
-    event.target.value = '';
-}
-
-function importarCSV(texto) {
-    console.log('CSV Nubank recebido:', texto.substring(0, 300));
-    addMensagem('Processando CSV do Nubank...', 'system');
-
-    const linhas = texto.split('\n');
-    let importadas = 0;
-    let erros = 0;
-    let comecouTransacoes = false;
-
-    linhas.forEach((linha, idx) => {
-        linha = linha.trim();
-        if (!linha) return;
-
-        if (linha.includes('RELEASE_DATE')) {
-            comecouTransacoes = true;
-            return;
-        }
-        if (!comecouTransacoes) return;
-
-        const cols = linha.split('\t').map(c => c.trim());
-        if (cols.length < 4) { erros++; return; }
-
-        try {
-            let data = cols[0]; // RELEASE_DATE
-            let desc = cols[1]; // TRANSACTION_TYPE
-            let valor = cols[3]; // TRANSACTION_NET_AMOUNT - ÍNDICE CORRETO
-
-            // Data: 01-04-2026 -> 01/04/2026
-            data = data.replace(/-/g, '/');
-            let partesData = data.split('/');
-            if (partesData.length!== 3) { erros++; return; }
-            if (partesData[2].length === 2) partesData[2] = '20' + partesData[2];
-
-            const dataISO = new Date(partesData[2], partesData[1] - 1, partesData[0]).toISOString();
-            if (isNaN(new Date(dataISO).getTime())) { erros++; return; }
-
-            // Valor: 6.521,87 ou -16,68
-            valor = valor.replace(/\./g, '').replace(',', '.');
-            valor = parseFloat(valor);
-            if (isNaN(valor)) { erros++; console.log('Valor inválido na linha:', linha); return; }
-
-            let tipoFinal = valor > 0? 'entrada' : 'saida';
-            valor = Math.abs(valor);
-
-            if (valor === 0) { erros++; return; }
-
-            const id = Date.now() + Math.random() + idx;
-            dados.push({
-                id: id,
-                descricao: cap(desc),
-                valor: valor,
-                tipo: tipoFinal,
-                metodo: 'conta',
-                banco: contas[0]?.nome || 'Nubank',
-                data: dataISO,
-                texto: linha,
-                categoria: identificarCategoria(desc, tipoFinal)
-            });
-            importadas++;
-        } catch (e) {
-            console.error('Erro linha:', idx, e, linha);
-            erros++;
-        }
-    });
-
-    if (importadas > 0) {
-        salvar();
-        atualizar();
-        fecharModal('modal-importar');
-        addMensagem(`${importadas} transações importadas do Nubank`, 'system');
-        if (erros > 0) addMensagem(`${erros} linhas ignoradas`, 'system');
+// ===== ONBOARDING =====
+function selecionarModo(modo) {
+    localStorage.setItem('modo', modo);
+    document.getElementById('modal-onboarding').style.display = 'none';
+    if (modo === 'producao' &&!contas.length) {
+        abrirModal('modal-contas');
     } else {
-        addMensagem('Nenhuma transação válida encontrada', 'system');
-        console.log('CSV completo:', texto);
+        mostrarApp();
     }
 }
 
-function importarOFX(texto) {
-    const transacoes = texto.match(/<STMTTRN>[\s\S]*?<\/STMTTRN>/g);
-    if (!transacoes) {
-        addMensagem('Arquivo OFX inválido', 'system');
-        return;
-    }
-    let importadas = 0;
-    transacoes.forEach((trans, idx) => {
-        try {
-            const data = trans.match(/<DTPOSTED>(\d{8})/)[1];
-            const valor = parseFloat(trans.match(/<TRNAMT>(-?[\d.]+)/)[1]);
-            const desc = trans.match(/<MEMO>([^<]+)/)[1];
-            const ano = data.substr(0, 4);
-            const mes = data.substr(4, 2);
-            const dia = data.substr(6, 2);
-            const dataISO = new Date(ano, mes - 1, dia).toISOString();
-            const id = Date.now() + Math.random() + idx;
-            dados.push({
-                id: id,
-                descricao: cap(desc),
-                valor: Math.abs(valor),
-                tipo: valor > 0? 'entrada' : 'saida',
-                metodo: 'conta',
-                banco: contas[0]?.nome || 'Principal',
-                data: dataISO,
-                texto: desc,
-                categoria: identificarCategoria(desc, valor > 0? 'entrada' : 'saida')
-            });
-            importadas++;
-        } catch (e) {}
-    });
-    if (importadas > 0) {
-        salvar();
-        atualizar();
-        fecharModal('modal-importar');
-        addMensagem(`${importadas} transações importadas do OFX`, 'system');
-    }
-}
+// ===== SCAN QR CODE =====
+function abrirScan() {
+    document.getElementById('modal-scan').style.display = 'flex';
+    html5QrCode = new Html5Qrcode("reader");
 
-function executarImportacao() {
-    const texto = document.getElementById('texto-importacao').value.trim();
-    if (!texto) {
-        addMensagem('Cole o extrato primeiro', 'system');
-        return;
-    }
-    const linhas = texto.split('\n');
-    let importadas = 0;
-    let erros = 0;
-    linhas.forEach((linha, idx) => {
-        linha = linha.trim();
-        if (!linha || linha.toUpperCase().includes('DATA') || linha.toUpperCase().includes('LANÇAMENTO') || linha.toUpperCase().includes('SALDO')) return;
-        let data, desc, valor, tipo;
-        let match = null;
-        match = linha.match(/^(\d{2}-\d{4})\s+(.+?)\s+([\d.,]+)\s+\d{10,}$/);
-        if (match) {
-            [, data, desc, valor] = match;
-            data = data.replace(/-/g, '/');
-            tipo = desc.toLowerCase().match(/rendimento|receb|depós|créd|estorno|pix receb/)? 'C' : 'D';
-        }
-        if (!match) {
-            match = linha.match(/^(\d{2}\/\d{2}\/\d{4})\s+(.+?)\s+([\d.,]+)\s*([CD])?$/i);
-            if (match) [, data, desc, valor, tipo] = match;
-        }
-        if (!match) {
-            match = linha.match(/^(\d{2}\/\d{2}\/\d{4})\s+(.+?)\s*([+-])\s*R?\$?\s*([\d.,]+)$/i);
-            if (match) [, data, desc, tipo, valor] = match;
-        }
-        if (!match) {
-            match = linha.match(/^(\d{2}\/\d{2})\s+(.+?)\s+([\d.,]+)([+-])$/i);
-            if (match) {
-                [, data, desc, valor, tipo] = match;
-                data += '/' + new Date().getFullYear();
-            }
-        }
-        if (!match) {
-            match = linha.match(/^(\d{2}\/\d{2}\/\d{2,4})\s+(.+?)\s+([\d.,]+)$/i);
-            if (match) {
-                [, data, desc, valor] = match;
-                tipo = desc.toLowerCase().match(/receb|depós|créd|estorno|salár|rendimento/)? 'C' : 'D';
-            }
-        }
-        if (match && valor) {
-            try {
-                let partesData = data.split('/');
-                let dia = partesData[0];
-                let mes = partesData[1];
-                let ano = partesData[2];
-                if (ano.length === 2) ano = '20' + ano;
-                const dataISO = new Date(ano, mes - 1, dia).toISOString();
-                const valorNum = parseFloat(valor.replace(/\./g, '').replace(',', '.'));
-                if (isNaN(valorNum) || valorNum === 0) return;
-                const tipoFinal = (tipo?.toUpperCase() === 'C' || tipo === '+')? 'entrada' : 'saida';
-                desc = desc.trim().replace(/\s+\d{10,}$/, '').replace(/\s+/g, ' ');
-                const id = Date.now() + Math.random() + idx;
-                dados.push({
-                    id: id,
-                    descricao: cap(desc),
-                    valor: valorNum,
-                    tipo: tipoFinal,
-                    metodo: 'conta',
-                    banco: contas[0]?.nome || 'Principal',
-                    data: dataISO,
-                    texto: linha,
-                    categoria: identificarCategoria(desc, tipoFinal)
-                });
-                importadas++;
-            } catch (e) {
-                erros++;
-            }
-        }
-    });
-    if (importadas > 0) {
-        salvar();
-        atualizar();
-        fecharModal('modal-importar');
-        addMensagem(`${importadas} transações importadas`, 'system');
-        if (erros > 0) addMensagem(`${erros} linhas ignoradas`, 'system');
-    } else {
-        addMensagem('Nenhuma transação com valor encontrada', 'system');
-    }
-}
-
-let html5QrCode = null;
-
-async function abrirScan() {
-    const modal = document.getElementById('modal-scan');
-    if (modal) modal.style.display = 'flex';
-
-    // Evita criar múltiplas instâncias
-    if (html5QrCode === null) {
-        html5QrCode = new Html5Qrcode("reader");
-    }
-
-    const config = { 
-        fps: 10, 
-        qrbox: { width: 250, height: 250 },
-        aspectRatio: 1.0 
-    };
-
-    try {
-        await html5QrCode.start(
-            { facingMode: "environment" },
-            config,
-            (decodedText) => {
-                processarQRCode(decodedText);
-                fecharScan();
-            },
-            (error) => { /* ignora ruído de leitura */ }
-        );
-    } catch (err) {
-        console.error(err);
-        alert('Erro: Certifique-se de estar usando HTTPS e dar permissão à câmera.');
+    html5QrCode.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: { width: 250, height: 250 } },
+        (decodedText) => {
+            processarQRCode(decodedText);
+            fecharScan();
+        },
+        (error) => {}
+    ).catch(err => {
+        alert('Erro ao abrir câmera: ' + err);
         fecharScan();
-    }
+    });
 }
 
 function fecharScan() {
-    const modal = document.getElementById('modal-scan');
-    
-    if (html5QrCode && html5QrCode.isScanning) {
+    if (html5QrCode) {
         html5QrCode.stop().then(() => {
-            if (modal) modal.style.display = 'none';
-        }).catch(err => {
-            console.error("Erro ao parar:", err);
-            if (modal) modal.style.display = 'none';
+            document.getElementById('modal-scan').style.display = 'none';
+            html5QrCode = null;
+        }).catch(() => {
+            document.getElementById('modal-scan').style.display = 'none';
         });
     } else {
-        if (modal) modal.style.display = 'none';
+        document.getElementById('modal-scan').style.display = 'none';
     }
 }
 
 function processarQRCode(texto) {
-    // 000201 é o início padrão do Pix Copy and Paste
-    if (texto.includes('000201')) {
+    if (texto.startsWith('000201')) {
         const boleto = parsePixQRCode(texto);
         if (boleto && boleto.valor > 0) {
-            const confirmar = confirm(`Pix Detectado:\n\nBeneficiário: ${boleto.beneficiario}\nValor: R$ ${boleto.valor.toFixed(2)}\n\nLançar no sistema?`);
-            
+            const confirmar = confirm(`Boleto Pix detectado:\n\nBeneficiário: ${boleto.beneficiario}\nValor: R$ ${boleto.valor.toFixed(2)}\n\nLançar como despesa?`);
             if (confirmar) {
-                // Garante que existe uma conta para vincular
-                const contaNome = (contas && contas.length > 0) ? contas[0].nome : 'Principal';
-
-                const novaTransacao = {
+                if (!contas.length) contas = [{nome: 'Principal', saldo: 0}];
+                dados.push({
                     id: Date.now(),
-                    descricao: `Pix: ${boleto.beneficiario}`,
+                    descricao: `Boleto ${boleto.beneficiario}`,
                     valor: boleto.valor,
                     tipo: 'saida',
                     metodo: 'conta',
-                    banco: contaNome,
-                    data: new Date().toISOString().split('T')[0], // Apenas a data YYYY-MM-DD
-                    categoria: 'Moradia', // Ou uma categoria padrão que você use
-                    texto: 'Lançamento via QR Code'
-                };
-
-                dados.push(novaTransacao);
+                    banco: contas[0].nome,
+                    data: new Date().toISOString(),
+                    categoria: 'Outras Despesas',
+                    texto: texto
+                });
                 salvar();
                 atualizar();
-                
-                // Se você tiver a função de mensagem no chat:
-                if (typeof addMensagem === 'function') {
-                    addMensagem(`Lançado: R$ ${boleto.valor.toFixed(2)} (${boleto.beneficiario})`, 'system');
-                }
+                addMensagem(`Boleto lançado: R$ ${boleto.valor.toFixed(2)} - ${boleto.beneficiario}`, 'system');
             }
         } else {
-            alert('Pix lido, mas não foi possível extrair o valor (Pix Estático sem valor definido).');
+            alert('QR Code Pix sem valor identificado');
         }
     } else {
-        alert('Este QR Code não é um Pix válido.');
+        addMensagem(`QR Code: ${texto}`, 'user');
     }
 }
 
 function parsePixQRCode(qr) {
     try {
-        // Busca o campo 54 (Valor) - O padrão é 54 + 2 dígitos de tamanho + valor
-        // Esta regex é mais resiliente para o padrão Pix
-        const valorMatch = qr.match(/54\d{2}([\d.]+)/);
-        const valor = valorMatch ? parseFloat(valorMatch[1]) : 0;
-
-        // Busca o campo 59 (Nome do Beneficiário)
-        const nomeMatch = qr.match(/59(\d{2})(.+)/);
-        let beneficiario = 'Desconhecido';
-        
-        if (nomeMatch) {
-            const tamanhoNome = parseInt(nomeMatch[1]);
-            beneficiario = nomeMatch[2].substring(0, tamanhoNome);
-        }
-
+        const valorMatch = qr.match(/54(\d{2})(\d+\.?\d*)/);
+        const valor = valorMatch? parseFloat(valorMatch[2]) : 0;
+        const nomeMatch = qr.match(/59(\d{2})([^0-9]{2,})/);
+        const beneficiario = nomeMatch? nomeMatch[2].substring(0, parseInt(nomeMatch[1])) : 'Desconhecido';
         return { valor, beneficiario };
     } catch (e) {
-        console.error('Erro no parse:', e);
+        console.error('Erro parse QR:', e);
         return null;
     }
 }
 
-function verificarAcesso() {
-    const modo = localStorage.getItem('bankday_modo');
-    const pinAtivo = localStorage.getItem('bankday_pin_ativo') === 'true'; // Nova flag
+// ===== CHAT E LANÇAMENTOS =====
+function processarMensagem() {
+    const input = document.getElementById('user-input');
+    const texto = input.value.trim();
+    if (!texto) return;
 
-    if (modo === 'producao' && pinAtivo) {
-        initPin(); // Só mostra se o usuário escolheu ter PIN
+    addMensagem(texto, 'user');
+    input.value = '';
+
+    const lancamento = interpretarTexto(texto);
+    if (lancamento) {
+        dados.push(lancamento);
+        salvar();
+        atualizar();
+        addMensagem(`Lançado: ${lancamento.descricao} R$ ${lancamento.valor.toFixed(2)}`, 'system');
     } else {
-        liberarApp(); // Entra direto
+        addMensagem('Não entendi. Ex: "mercado 150" ou "recebi 2000"', 'system');
     }
 }
 
-// INICIALIZAÇÃO
-document.addEventListener('DOMContentLoaded', () => {
-    if (localStorage.getItem('bankday_tema') === 'light') toggleTheme();
+function interpretarTexto(texto) {
+    const regex = /(.+?)\s+(\d+[.,]?\d*)/;
+    const match = texto.match(regex);
+    if (!match) return null;
 
-    let modo = localStorage.getItem('bankday_modo');
-    if (!modo) {
-        const onboarding = document.getElementById('modal-onboarding');
-        if (onboarding) onboarding.style.display = 'flex';
-    } else if (modo === 'producao') {
-        initPin();
-    } else {
-        liberarApp();
+    const descricao = match[1].trim();
+    const valor = parseFloat(match[2].replace(',', '.'));
+    const tipo = texto.toLowerCase().includes('recebi') || texto.toLowerCase().includes('salario')? 'entrada' : 'saida';
+
+    if (!contas.length) contas = [{nome: 'Principal', saldo: 0}];
+
+    return {
+        id: Date.now(),
+        descricao: descricao,
+        valor: valor,
+        tipo: tipo,
+        metodo: 'conta',
+        banco: contas[0].nome,
+        data: new Date().toISOString(),
+        categoria: tipo === 'entrada'? 'Salário' : 'Outras Despesas',
+        texto: texto
+    };
+}
+
+function addMensagem(texto, tipo) {
+    const chat = document.getElementById('chat-box');
+    const msg = document.createElement('div');
+    msg.className = `msg ${tipo}`;
+    msg.innerHTML = `<div class="msg-bubble"><p>${texto}</p></div>`;
+    chat.appendChild(msg);
+    chat.scrollTop = chat.scrollHeight;
+}
+
+// ===== MÊS E CARDS =====
+function mudarMes(delta) {
+    mesAtual += delta;
+    if (mesAtual < 0) {
+        mesAtual = 11;
+        anoAtual--;
+    } else if (mesAtual > 11) {
+        mesAtual = 0;
+        anoAtual++;
+    }
+    atualizarMes();
+    atualizar();
+}
+
+function atualizarMes() {
+    const meses = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+    document.getElementById('mesAtual').textContent = `${meses[mesAtual]} ${anoAtual}`;
+}
+
+function atualizar() {
+    const dadosMes = dados.filter(d => {
+        const data = new Date(d.data);
+        return data.getMonth() === mesAtual && data.getFullYear() === anoAtual;
+    });
+
+    const entradas = dadosMes.filter(d => d.tipo === 'entrada').reduce((s, d) => s + d.valor, 0);
+    const saidas = dadosMes.filter(d => d.tipo === 'saida').reduce((s, d) => s + d.valor, 0);
+    const cartao = dadosMes.filter(d => d.metodo === 'cartao').reduce((s, d) => s + d.valor, 0);
+    const saldo = entradas - saidas;
+
+    document.getElementById('card-entradas').textContent = `R$ ${entradas.toFixed(2)}`;
+    document.getElementById('card-saidas').textContent = `R$ ${saidas.toFixed(2)}`;
+    document.getElementById('card-saldo').textContent = `R$ ${saldo.toFixed(2)}`;
+    document.getElementById('card-cartoes').textContent = `R$ ${cartao.toFixed(2)}`;
+    document.getElementById('card-liquido').textContent = `R$ ${saldo.toFixed(2)}`;
+}
+
+// ===== MODAIS =====
+function abrirModal(id) {
+    document.getElementById(id).style.display = 'flex';
+}
+
+function fecharModal(id) {
+    document.getElementById(id).style.display = 'none';
+}
+
+function abrirExtrato(tipo) {
+    abrirModal('modal-extrato');
+    filtrarExtrato(tipo);
+}
+
+// ===== CONTAS E CARTÕES =====
+function addTempConta() {
+    const nome = document.getElementById('conta-nome').value;
+    const saldo = parseFloat(document.getElementById('conta-saldo').value) || 0;
+    if (!nome) return;
+
+    contas.push({ nome, saldo });
+    document.getElementById('conta-nome').value = '';
+    document.getElementById('conta-saldo').value = '';
+    renderTempContas();
+}
+
+function addTempCartao() {
+    const nome = document.getElementById('cartao-nome').value;
+    const fechamento = document.getElementById('cartao-fechamento').value;
+    const vencimento = document.getElementById('cartao-vencimento').value;
+    if (!nome) return;
+
+    cartoes.push({ nome, fechamento, vencimento });
+    document.getElementById('cartao-nome').value = '';
+    document.getElementById('cartao-fechamento').value = '';
+    document.getElementById('cartao-vencimento').value = '';
+    renderTempCartoes();
+}
+
+function renderTempContas() {
+    const lista = document.getElementById('lista-contas-temp');
+    lista.innerHTML = contas.map((c, i) => `
+        <div class="item-temp">
+            <span>${c.nome} - R$ ${c.saldo.toFixed(2)}</span>
+            <button onclick="contas.splice(${i},1); renderTempContas()">X</button>
+        </div>
+    `).join('');
+}
+
+function renderTempCartoes() {
+    const lista = document.getElementById('lista-cartoes-temp');
+    lista.innerHTML = cartoes.map((c, i) => `
+        <div class="item-temp">
+            <span>${c.nome}</span>
+            <button onclick="cartoes.splice(${i},1); renderTempCartoes()">X</button>
+        </div>
+    `).join('');
+}
+
+function finalizarCadastro() {
+    salvar();
+    fecharModal('modal-contas');
+    mostrarApp();
+}
+
+// ===== EXTRATO =====
+function filtrarExtrato(tipo = '') {
+    const lista = document.getElementById('lista-extrato');
+    const filtroTipo = tipo || document.getElementById('filtro-tipo')?.value || '';
+
+    let dadosFiltrados = dados.filter(d => {
+        const data = new Date(d.data);
+        return data.getMonth() === mesAtual && data.getFullYear() === anoAtual;
+    });
+
+    if (filtroTipo) {
+        if (filtroTipo === 'cartao') {
+            dadosFiltrados = dadosFiltrados.filter(d => d.metodo === 'cartao');
+        } else {
+            dadosFiltrados = dadosFiltrados.filter(d => d.tipo === filtroTipo);
+        }
     }
 
-    document.getElementById('user-input')?.addEventListener('keydown', e => e.key === 'Enter' && processarMensagem());
-    document.getElementById('btn-enviar')?.addEventListener('click', processarMensagem);
-});
+    lista.innerHTML = dadosFiltrados.map(d => `
+        <div class="extrato-item">
+            <div class="extrato-item-info">
+                <p class="extrato-item-titulo">${d.descricao}</p>
+                <p class="extrato-item-meta">${new Date(d.data).toLocaleDateString()} - ${d.categoria}</p>
+            </div>
+            <div class="extrato-item-valor text-${d.tipo === 'entrada'? 'emerald' : 'rose'}">
+                ${d.tipo === 'entrada'? '+' : '-'} R$ ${d.valor.toFixed(2)}
+            </div>
+        </div>
+    `).join('');
+
+    const total = dadosFiltrados.reduce((s, d) => s + (d.tipo === 'entrada'? d.valor : -d.valor), 0);
+    document.getElementById('total-extrato').textContent = `Total: R$ ${total.toFixed(2)}`;
+}
+
+// ===== OUTRAS FUNÇÕES =====
+function toggleTheme() {
+    document.body.classList.toggle('light-mode');
+    const icon = document.getElementById('theme-icon');
+    icon.className = document.body.classList.contains('light-mode')? 'fas fa-sun' : 'fas fa-moon';
+}
+
+function toggleVisibility() {
+    const icon = document.getElementById('eye-icon');
+    const oculto = icon.className.includes('fa-eye-slash');
+    icon.className = oculto? 'fas fa-eye' : 'fas fa-eye-slash';
+    document.querySelectorAll('.val').forEach(el => {
+        el.style.filter = oculto? 'none' : 'blur(8px)';
+    });
+}
+
+function toggleMenu() {
+    document.getElementById('menuDropdown').classList.toggle('hidden');
+}
+
+function trocarAba(aba, e) {
+    document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+    e.currentTarget.classList.add('active');
+    if (aba === 'extrato') abrirModal('modal-extrato');
+    if (aba === 'graficos') abrirModal('modal-graficos');
+}
+
+function salvar() {
+    localStorage.setItem('dados', JSON.stringify(dados));
+    localStorage.setItem('contas', JSON.stringify(contas));
+    localStorage.setItem('cartoes', JSON.stringify(cartoes));
+}
+
+function resetarTransacoes() {
+    if (confirm('Apagar todas as transações?')) {
+        dados = [];
+        salvar();
+        atualizar();
+    }
+}
+
+function resetarApp() {
+    if (confirm('Resetar app completo?')) {
+        localStorage.clear();
+        location.reload();
+    }
+}
+
+// Stubs que ainda faltam implementar
+function toggleProjetado() { alert('Em breve'); }
+function lerArquivoExtrato(e) { alert('Em breve'); }
+function executarImportacao() { alert('Em breve'); }
+function trocarGrafico(t) { alert('Em breve'); }
+function atualizarCategorias() {}
+function atualizarContasModal() {}
+function deletarTransacao() {}
+function salvarEdicao() {}
