@@ -478,6 +478,27 @@ function abrirScan() {
     });
 }
 
+let html5QrCode = null;
+
+function abrirScan() {
+    document.getElementById('modal-scan').style.display = 'flex';
+    html5QrCode = new Html5Qrcode("reader");
+
+    html5QrCode.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: { width: 250, height: 250 } },
+        (decodedText) => {
+            processarQRCode(decodedText);
+            fecharScan();
+        },
+        (error) => {
+        }
+    ).catch(err => {
+        alert('Erro ao abrir câmera: ' + err);
+        fecharScan();
+    });
+}
+
 function fecharScan() {
     if (html5QrCode) {
         html5QrCode.stop().then(() => {
@@ -495,13 +516,13 @@ function processarQRCode(texto) {
     console.log('QR Code lido:', texto);
 
     if (texto.startsWith('000201')) {
-        const boleto = parsePixQRCode(texto); // RENOMEADO PRA BOLETO
+        const boleto = parsePixQRCode(texto);
         if (boleto) {
             const confirmar = confirm(`Boleto detectado:\n\nBeneficiário: ${boleto.beneficiario}\nValor: R$ ${boleto.valor.toFixed(2)}\n\nLançar como despesa?`);
             if (confirmar) {
-                if (!contas.length) contas = [{nome: 'Principal'}]; // GARANTE QUE TEM CONTA
+                if (!contas.length) contas = [{nome: 'Principal'}];
 
-                dados.push({ // AGORA É O ARRAY GLOBAL CERTO
+                dados.push({
                     id: Date.now(),
                     descricao: `Boleto ${boleto.beneficiario}`,
                     valor: boleto.valor,
