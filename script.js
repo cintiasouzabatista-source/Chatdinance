@@ -252,12 +252,11 @@ function interpretarTexto(texto) {
                 totalParcelas: parcelas
             });
         }
-        // Adiciona todas as parcelas
         dados.push(...lancamentos);
         salvar();
         atualizar();
         addMensagem(`Lançado: ${descricao} em ${parcelas}x de R$ ${valorParcela.toFixed(2)}`, 'system');
-        return null; // Já lançou, não precisa retornar
+        return null;
     }
 
     return {
@@ -272,16 +271,28 @@ function interpretarTexto(texto) {
         texto: texto
     };
 }
+
 function addMensagem(texto, tipo) {
     const chat = document.getElementById('chat-box');
     if (!chat) return;
+
     const msg = document.createElement('div');
     msg.className = `msg ${tipo}`;
     msg.innerHTML = `<div class="msg-bubble"><p>${texto}</p></div>`;
     chat.appendChild(msg);
     chat.scrollTop = chat.scrollHeight;
-}
-// ===== CADASTRO CARTÃO COMPLETO =====
+
+    // Some em 8 segundos se for system
+    if (tipo === 'system') {
+        setTimeout(() => {
+            msg.style.transition = 'opacity 0.5s';
+            msg.style.opacity = '0';
+            setTimeout(() => msg.remove(), 500);
+        }, 8000);
+    }
+} // <-- CHAVE QUE FALTAVA
+
+// ===== CADASTRO CARTÃO =====
 function abrirModalCartao() {
     document.getElementById('cartao-nome-input').value = '';
     document.getElementById('cartao-limite-input').value = '';
@@ -308,28 +319,29 @@ function salvarCartao() {
     atualizar();
 }
 
-function listarCartoes() {
-    const lista = document.getElementById('lista-cartoes');
-    if (!lista) return;
-
-    lista.innerHTML = cartoes.map((c, i) => `
-        <div class="item-lista">
-            <div>
-                <strong>${c.nome}</strong><br>
-                <small>Fecha dia ${c.fechamento} | Vence dia ${c.vencimento} | Limite R$ ${c.limite.toFixed(2)}</small>
-            </div>
-            <button onclick="excluirCartao(${i})" class="btn-danger"><i class="fas fa-trash"></i></button>
-        </div>
-    `).join('');
+// ===== MENU MAIS =====
+function abrirMenuMais(e) {
+    e.preventDefault();
+    document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+    e.currentTarget.classList.add('active');
+    document.getElementById('menu-mais').classList.remove('hidden');
 }
 
-function excluirCartao(index) {
-    if (confirm('Excluir este cartão? Lançamentos não serão apagados.')) {
-        cartoes.splice(index, 1);
-        salvar();
-        listarCartoes();
+function fecharMenuMais() {
+    document.getElementById('menu-mais').classList.add('hidden');
+    document.querySelectorAll('.nav-item')[0].classList.add('active');
+}
+
+// Fecha menu se clicar fora
+document.addEventListener('click', (e) => {
+    const menu = document.getElementById('menu-mais');
+    const btnMais = document.querySelector('.nav-item:last-child');
+    if (menu &&!menu.classList.contains('hidden')) {
+        if (!menu.contains(e.target) &&!btnMais.contains(e.target)) {
+            fecharMenuMais();
+        }
     }
-}
+});
 
 // ===== MÊS E CARDS =====
 function mudarMes(delta) {
@@ -607,69 +619,10 @@ function trocarGrafico(tipo) {
     });
 }
 
-// ===== IMPORTAR CSV/OFX =====
-function lerArquivoExtrato(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
-        document.getElementById('import-texto').value = e.target.result;
-    };
-    reader.readAsText(file);
-}
-
-function executarImportacao() {
-    const texto = document.getElementById('import-texto').value;
-    if (!texto) return;
-
-    const linhas = texto.split('\n');
-    let importados = 0;
-
-    linhas.forEach(linha => {
-        // Formato: DATA;DESCRICAO;VALOR;TIPO
-        const partes = linha.split(';');
-        if (partes.length >= 3) {
-            const data = new Date(partes[0]);
-            const descricao = partes[1];
-            const valor = parseFloat(partes[2].replace(',', '.'));
-            const tipo = partes[3] || (valor < 0? 'saida' : 'entrada');
-
-            if (!isNaN(valor) && descricao) {
-                dados.push({
-                    id: Date.now() + importados,
-                    descricao: descricao,
-                    valor: Math.abs(valor),
-                    tipo: tipo,
-                    metodo: 'conta',
-                    banco: contas[0]?.nome || 'Principal',
-                    data: data.toISOString(),
-                    categoria: 'Importado',
-                    texto: linha
-                });
-                importados++;
-            }
-        }
-    });
-
-    if (importados > 0) {
-        salvar();
-        atualizar();
-        alert(`${importados} lançamentos importados!`);
-        fecharModal('modal-importar');
-    } else {
-        alert('Nenhum lançamento válido encontrado. Use formato: DATA;DESCRICAO;VALOR');
-    }
-}
-
 // ===== SALDO PROJETADO =====
 function toggleProjetado() {
     mostrarProjetado =!mostrarProjetado;
-    const btn = document.getElementById('btn-projetado');
-    btn.classList.toggle('active');
-
     if (mostrarProjetado) {
-        // Calcula média dos últimos 3 meses
         let totalMeses = 0, somaSaldo = 0;
         for (let i = 1; i <= 3; i++) {
             let mesCalc = mesAtual - i;
@@ -711,10 +664,6 @@ function toggleVisibility() {
     });
 }
 
-function toggleMenu() {
-    document.getElementById('menuDropdown').classList.toggle('hidden');
-}
-
 function trocarAba(aba, e) {
     document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
     e.currentTarget.classList.add('active');
@@ -742,44 +691,3 @@ function resetarApp() {
         location.reload();
     }
 }
-
-function addMensagem(texto, tipo) {
-    const chat = document.getElementById('chat-box');
-    if (!chat) return;
-    
-    const msg = document.createElement('div');
-    msg.className = `msg ${tipo}`;
-    msg.innerHTML = `<div class="msg-bubble"><p>${texto}</p></div>`;
-    chat.appendChild(msg);
-    chat.scrollTop = chat.scrollHeight;
-
-    // Some em 8 segundos se for system
-    if (tipo === 'system') {
-        setTimeout(() => {
-            msg.style.transition = 'opacity 0.5s';
-            msg.style.opacity = '0';
-            setTimeout(() => msg.remove(), 500);
-        }, 8000);
-    }
-function abrirMenuMais(e) {
-    e.preventDefault();
-    document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
-    e.currentTarget.classList.add('active');
-    document.getElementById('menu-mais').classList.remove('hidden');
-}
-
-function fecharMenuMais() {
-    document.getElementById('menu-mais').classList.add('hidden');
-    document.querySelectorAll('.nav-item')[0].classList.add('active'); // Volta pro Chat
-}
-
-// Fecha menu se clicar fora
-document.addEventListener('click', (e) => {
-    const menu = document.getElementById('menu-mais');
-    const btnMais = document.querySelector('.nav-item:last-child');
-    if (menu &&!menu.classList.contains('hidden')) {
-        if (!menu.contains(e.target) &&!btnMais.contains(e.target)) {
-            fecharMenuMais();
-        }
-    }
-});
