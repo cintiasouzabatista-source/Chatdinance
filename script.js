@@ -161,51 +161,60 @@ function processarMensagem() {
     }
 }
 
-// ===== INTERPRETAÇÃO AUTOMÁTICA =====
 function interpretarTexto(texto) {
     const regexValor = /(\d+[.,]?\d*)/;
     const matchValor = texto.match(regexValor);
     if (!matchValor) return null;
-    const valor = parseFloat(matchValor[1].replace(',', '.'));
-    let descricao = texto.replace(matchValor[0], '').trim();
 
-    const regexEntrada = /(recebi|salario|salário|pagamento)/i;
-    const regexSaldo = /(saldo inicial)/i;
+    const valor = parseFloat(matchValor[1].replace(',', '.'));
+
+    // ===== DESCRIÇÃO LIMPA =====
+    let desc = texto;
+
+    // 1. Remove valor
+    desc = desc.replace(matchValor[0], '');
+
+    // 2. Remove palavras-chave de ação
+    const palavrasAcao = [
+        'comprei','paguei','parcelei','quitei','gastei','transferi',
+        'recebi','salario','salário','pagamento','de','do','da','no','na','em','por',
+        'cartao','cartão','credito','crédito','conta','\d+x','x'
+    ];
+    palavrasAcao.forEach(p => {
+        const regex = new RegExp(`\\b${p}\\b`, 'gi');
+        desc = desc.replace(regex, '');
+    });
+
+    // 3. Remove bancos/cartões mencionados
+    [...contas,...cartoes].forEach(item => {
+        const regex = new RegExp(`\\b${item.nome}\\b`, 'gi');
+        desc = desc.replace(regex, '');
+    });
+
+    // 4. Limpa espaços duplos e sobras
+    desc = desc.replace(/\s+/g, ' ').trim();
+
+    // 5. Primeira letra maiúscula + fallback
+    desc = desc? desc.charAt(0).toUpperCase() + desc.slice(1) : 'Lançamento';
+
+    // ===== TIPO =====
+    const regexEntrada = /(recebi|salario|salário|pagamento|pix recebido)/i;
     const tipo = regexEntrada.test(texto)? 'entrada' : 'saida';
 
-    const regexParcela = /(\d+)\s*x/i;
-    const matchParcela = texto.match(regexParcela);
-    const parcelas = matchParcela? parseInt(matchParcela[1]) : 1;
-
-    const metodo = /cartao|credito|cartão/i.test(texto)? 'cartao' : 'conta';
-
-    let banco = metodo === 'cartao'? (cartoes[0]?.nome || 'Cartão') : (contas[0]?.nome || 'Conta');
-    [...contas,...cartoes].forEach(item => {
-        if (texto.toLowerCase().includes(item.nome.toLowerCase())) banco = item.nome;
-    });
-
-    const categorias = {
-        'mercado': 'Alimentação', 'cafe': 'Alimentação', 'almoço': 'Alimentação',
-        'uber': 'Transporte', 'gasolina': 'Transporte', 'onibus': 'Transporte',
-        'aluguel': 'Moradia', 'luz': 'Moradia', 'agua': 'Moradia',
-        'cinema': 'Lazer', 'bar': 'Lazer',
-        'farmacia': 'Saúde', 'medico': 'Saúde',
-        'curso': 'Educação', 'livro': 'Educação',
-        'netflix': 'Assinaturas', 'spotify': 'Assinaturas',
-        'salario': 'Salário', 'freelance': 'Freelance'
-    };
-    let categoria = tipo === 'entrada'? 'Outros' : 'Outras Despesas';
-    Object.keys(categorias).forEach(key => {
-        if (descricao.toLowerCase().includes(key)) categoria = categorias[key];
-    });
-
-    if (regexSaldo.test(texto)) {
+    // ===== SALDO INICIAL =====
+    if (/(saldo inicial)/i.test(texto)) {
         if (!contas.length) contas.push({nome: 'Principal', saldo: 0, id: Date.now()});
         contas[0].saldo = valor;
         salvar();
         atualizar();
+        addMensagem(`Saldo inicial atualizado: R$ ${valor.toFixed(2)}`, 'system');
         return null;
     }
+
+    // ===== PARCELADO =====
+    const regexParcela = /(\d+)\s*x/i;
+    const matchParcela = texto.match(regexParcela);
+    const parcelas = matchParcela? parseInt(matchParcela[1]) : 1;
 
     if (parcelas > 1) {
         const valorParcela = valor / parcelas;
@@ -214,11 +223,11 @@ function interpretarTexto(texto) {
             dataParcela.setMonth(dataParcela.getMonth() + i);
             dados.push({
                 id: Date.now() + i,
-                descricao: `${descricao} ${i+1}/${parcelas}`,
+                descricao: `${desc} ${i+1}/${parcelas}`,
                 valor: valorParcela,
                 tipo: tipo,
-                metodo: metodo,
-                banco: banco,
+                metodo: /cartao|credito|cartão/i.test(texto)? 'cartao' : 'conta',
+                banco: [...contas,...cartoes].find(b => texto.toLowerCase().includes(b.nome.toLowerCase()))?.nome || (contas[0]?.nome || 'Conta'),
                 data: dataParcela.toISOString(),
                 categoria: 'Parcelado',
                 texto: texto,
@@ -228,13 +237,37 @@ function interpretarTexto(texto) {
         }
         salvar();
         atualizar();
-        addMensagem(`Parcelado: ${descricao} em ${parcelas}x de R$ ${valorParcela.toFixed(2)}`, 'system');
+        addMensagem(`Parcelado: ${desc} em ${parcelas}x de R$ ${valorParcela.toFixed(2)}`, 'system');
         return null;
     }
 
+    // ===== MÉTODO E BANCO =====
+    const metodo = /cartao|credito|cartão/i.test(texto)? 'cartao' : 'conta';
+    let banco = metodo === 'cartao'? (cartoes[0]?.nome || 'Cartão') : (contas[0]?.nome || 'Conta');
+    [...contas,...cartoes].forEach(item => {
+        if (texto.toLowerCase().includes(item.nome.toLowerCase())) banco = item.nome;
+    });
+
+    // ===== CATEGORIA AUTOMÁTICA =====
+    const categorias = {
+        'mercado|supermercado|feira': 'Alimentação',
+        'cafe|lanche|padaria|almoço|jantar|ifood|rappi': 'Alimentação',
+        'uber|99|taxi|gasolina|combustivel|onibus|metro': 'Transporte',
+        'aluguel|condominio|luz|energia|agua|internet': 'Moradia',
+        'cinema|bar|festa|show|netflix|spotify|prime': 'Lazer',
+        'farmacia|medico|hospital|remedio|plano': 'Saúde',
+        'curso|faculdade|livro|escola': 'Educação',
+        'salario|freelance|pix recebido|rendimento': 'Salário'
+    };
+    let categoria = tipo === 'entrada'? 'Outros' : 'Outras Despesas';
+    Object.keys(categorias).forEach(keys => {
+        const regex = new RegExp(keys, 'i');
+        if (regex.test(texto.toLowerCase())) categoria = categorias[keys];
+    });
+
     return {
         id: Date.now(),
-        descricao: descricao || (tipo === 'entrada'? 'Receita' : 'Despesa'),
+        descricao: desc,
         valor: valor,
         tipo: tipo,
         metodo: metodo,
@@ -244,7 +277,6 @@ function interpretarTexto(texto) {
         texto: texto
     };
 }
-
 function addMensagem(texto, tipo) {
     const chat = document.getElementById('chat-box');
     if (!chat) return;
