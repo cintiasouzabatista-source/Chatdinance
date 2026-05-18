@@ -26,17 +26,84 @@ document.addEventListener('DOMContentLoaded', () => {
 // ===== PIN =====
 function setupPinInputs() {
     const inputs = document.querySelectorAll('.pin-input');
+    if (!inputs.length) return;
+    
     inputs.forEach((input, idx) => {
         input.addEventListener('input', (e) => {
-            if (e.target.value && idx < inputs.length - 1) inputs[idx + 1].focus();
-            if (idx === inputs.length - 1 && e.target.value) verificarPin();
+            const val = e.target.value;
+            if (val && idx < inputs.length - 1) {
+                inputs[idx + 1].focus();
+            }
+            // Verifica quando digitou os 4
+            const pinCompleto = Array.from(inputs).every(i => i.value);
+            if (pinCompleto) {
+                setTimeout(() => verificarPin(), 100);
+            }
         });
+        
         input.addEventListener('keydown', (e) => {
-            if (e.key === 'Backspace' &&!e.target.value && idx > 0) inputs[idx - 1].focus();
+            if (e.key === 'Backspace' &&!e.target.value && idx > 0) {
+                inputs[idx - 1].focus();
+                inputs[idx - 1].value = '';
+            }
+        });
+        
+        // Limpa erro ao digitar
+        input.addEventListener('focus', () => {
+            document.getElementById('pin-erro')?.classList.add('hidden');
         });
     });
 }
 
+function verificarPin() {
+    const inputs = document.querySelectorAll('.pin-input');
+    const pin = Array.from(inputs).map(i => i.value).join('');
+    const pinSalvo = localStorage.getItem('pin');
+    
+    if (pin.length!== 4) return;
+    
+    if (!pinSalvo) {
+        // Primeiro acesso - salva o PIN
+        localStorage.setItem('pin', pin);
+        mostrarOnboarding();
+        inputs.forEach(i => i.value = '');
+    } else if (pin === pinSalvo) {
+        // PIN correto
+        document.getElementById('tela-pin').style.display = 'none';
+        document.getElementById('app-content').style.display = 'flex';
+        atualizar();
+        inputs.forEach(i => i.value = '');
+    } else {
+        // PIN errado
+        const erro = document.getElementById('pin-erro');
+        erro.textContent = 'PIN incorreto';
+        erro.classList.remove('hidden');
+        inputs.forEach(i => {
+            i.value = '';
+            i.style.animation = 'shake 0.3s';
+            setTimeout(() => i.style.animation = '', 300);
+        });
+        inputs[0].focus();
+    }
+}
+
+function mostrarTelaPin() {
+    document.getElementById('tela-pin').style.display = 'flex';
+    document.getElementById('app-content').style.display = 'none';
+    setTimeout(() => document.querySelector('.pin-input')?.focus(), 200);
+}
+
+function mostrarOnboarding() {
+    document.getElementById('tela-pin').style.display = 'none';
+    document.getElementById('modal-onboarding').style.display = 'flex';
+}
+
+function resetarApp() {
+    if (confirm('Isso vai apagar TUDO. Confirma?')) {
+        localStorage.clear();
+        location.reload();
+    }
+}
 function verificarPin() {
     const inputs = document.querySelectorAll('.pin-input');
     const pin = Array.from(inputs).map(i => i.value).join('');
