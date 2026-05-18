@@ -108,3 +108,9 @@ nav{flex-shrink:0;display:flex;background:var(--bg2);border-top:1px solid var(--
 /* FORM */
 .form-group{margin-bottom:16px}
 .form-group label{display:block;font-size:12px;color:var(--text2);margin-bottom:6px;text-transform:uppercase}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+}
