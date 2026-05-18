@@ -656,7 +656,7 @@ function resetarTransacoes() {
         addMensagem('Lançamentos do mês apagados', 'system');
         fecharMenuMais();
     }
-}
+
 
 // ===== CLICK FORA =====
 document.addEventListener('click', (e) => {
