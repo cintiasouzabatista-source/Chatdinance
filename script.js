@@ -100,13 +100,6 @@ function mostrarApp() {
     atualizar();
 }
 
-function resetarApp() {
-    if (confirm('Isso vai apagar TUDO. Confirma?')) {
-        localStorage.clear();
-        location.reload();
-    }
-}
-
 // ===== ONBOARDING =====
 function selecionarModo(modo) {
     localStorage.setItem('modo', modo);
@@ -178,7 +171,7 @@ function interpretarTexto(texto) {
     const palavrasAcao = [
         'comprei','paguei','parcelei','quitei','gastei','transferi',
         'recebi','salario','salário','pagamento','de','do','da','no','na','em','por',
-        'cartao','cartão','credito','crédito','conta','\d+x','x'
+        'cartao','cartão','credito','crédito','conta','\\d+x','x'
     ];
     palavrasAcao.forEach(p => {
         const regex = new RegExp(`\\b${p}\\b`, 'gi');
@@ -277,6 +270,7 @@ function interpretarTexto(texto) {
         texto: texto
     };
 }
+
 function addMensagem(texto, tipo) {
     const chat = document.getElementById('chat-box');
     if (!chat) return;
@@ -558,7 +552,7 @@ function abrirEditarTransacao(id) {
 function atualizarCategorias() {
     const tipo = document.getElementById('edit-tipo').value;
     const cats = tipo === 'entrada'
-       ? ['Salário','Freelance','Investimentos','Outros']
+      ? ['Salário','Freelance','Investimentos','Outros']
         : ['Alimentação','Transporte','Moradia','Lazer','Saúde','Educação','Assinaturas','Parcelado','Outras Despesas'];
     document.getElementById('edit-categoria').innerHTML = cats.map(c => `<option>${c}</option>`).join('');
 }
@@ -610,48 +604,7 @@ function toggleProjetado() {
     atualizar();
 }
 
-function resetarTransacoes() {
-    if (confirm('Limpar todos lançamentos do mês?')) {
-        dados = dados.filter(d => {
-            const data = new Date(d.data);
-            return!(data.getMonth() === mesAtual && data.getFullYear() === anoAtual);
-        });
-        salvar();
-        atualizar();
-    }
-}
-
-// ===== ABAS =====
-function trocarAba(aba, e) {
-    document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
-    e?.currentTarget.classList.add('active');
-    if (aba === 'chat') {
-        document.getElementById('chat-box').scrollTop = document.getElementById('chat-box').scrollHeight;
-    }
-}
-
-// ===== PERSISTÊNCIA =====
-function salvar() {
-    localStorage.setItem('dados', JSON.stringify(dados));
-    localStorage.setItem('contas', JSON.stringify(contas));
-    localStorage.setItem('cartoes', JSON.stringify(cartoes));
-}
-
-
-
-// ===== CLICK FORA =====
-document.addEventListener('click', (e) => {
-    if (!e.target.closest('.menu-mais') &&!e.target.closest('.nav-item')) {
-        fecharMenuMais();
-    }
-});
-
-// ===== TEMA INICIAL =====
-if (localStorage.getItem('theme') === 'light') {
-    document.body.classList.add('light');
-    document.getElementById('theme-icon').className = 'fas fa-sun';
-}
-// ===== RESET COMPLETO =====
+// ===== RESET =====
 function resetarApp() {
     if (confirm('ATENÇÃO: Isso vai apagar TUDO\n\n• Todas as transações\n• Contas e cartões\n• PIN de acesso\n\nTem certeza que deseja resetar o app?')) {
         localStorage.clear();
@@ -670,6 +623,22 @@ function resetarTransacoes() {
         addMensagem('Lançamentos do mês apagados', 'system');
         fecharMenuMais();
     }
+}
+
+// ===== ABAS =====
+function trocarAba(aba, e) {
+    document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+    e?.currentTarget.classList.add('active');
+    if (aba === 'chat') {
+        document.getElementById('chat-box').scrollTop = document.getElementById('chat-box').scrollHeight;
+    }
+}
+
+// ===== PERSISTÊNCIA =====
+function salvar() {
+    localStorage.setItem('dados', JSON.stringify(dados));
+    localStorage.setItem('contas', JSON.stringify(contas));
+    localStorage.setItem('cartoes', JSON.stringify(cartoes));
 }
 
 // ===== CLICK FORA =====
