@@ -180,6 +180,16 @@ function interpretarTexto(texto) {
     const valor = parseFloat(matchValor[1].replace(',', '.'));
     let textoLimpo = texto.toLowerCase();
 
+    // ===== SALDO INICIAL =====
+    if (/(saldo inicial)/i.test(texto)) {
+        if (!contas.length) contas.push({nome: 'Principal', saldo: 0, id: Date.now()});
+        contas[0].saldo = valor;
+        salvar();
+        atualizar();
+        addMensagem(`Saldo inicial atualizado: R$ ${valor.toFixed(2)}`, 'system');
+        return null;
+    }
+
     // ===== DETECTA BANCO/CARTÃO PRIMEIRO =====
     const metodo = /cartao|credito|cartão/i.test(texto)? 'cartao' : 'conta';
     let banco = metodo === 'cartao'? (cartoes[0]?.nome || 'Cartão') : (contas[0]?.nome || 'Conta');
@@ -190,7 +200,80 @@ function interpretarTexto(texto) {
             textoLimpo = textoLimpo.replace(new RegExp(`\\b${item.nome.toLowerCase()}\\b`, 'g'), '');
         }
     });
-const retorno = {
+
+    // ===== DESCRIÇÃO LIMPA =====
+    let desc = textoLimpo;
+    desc = desc.replace(matchValor[0], '');
+
+    const palavrasAcao = [
+        'comprei','paguei','parcelei','quitei','gastei','transferi',
+        'recebi','salario','salário','pagamento','de','do','da','no','na','em','por',
+        'cartao','cartão','credito','crédito','conta','\\d+x','x'
+    ];
+    palavrasAcao.forEach(p => {
+        const regex = new RegExp(`\\b${p}\\b`, 'gi');
+        desc = desc.replace(regex, '');
+    });
+
+    desc = desc.replace(/\s+/g, ' ').trim();
+    desc = desc? desc.charAt(0).toUpperCase() + desc.slice(1) : 'Lançamento';
+
+    // ===== TIPO =====
+    const regexEntrada = /(recebi|salario|salário|pagamento|pix recebido)/i;
+    const tipo = regexEntrada.test(texto)? 'entrada' : 'saida';
+
+    // ===== PARCELADO =====
+    const regexParcela = /(\d+)\s*x/i;
+    const matchParcela = texto.match(regexParcela);
+    const parcelas = matchParcela? parseInt(matchParcela[1]) : 1;
+
+    if (parcelas > 1) {
+        const valorParcela = valor / parcelas;
+        for (let i = 0; i < parcelas; i++) {
+            const dataParcela = new Date();
+            dataParcela.setMonth(dataParcela.getMonth() + i);
+            dados.push({
+                id: Date.now() + i,
+                descricao: `${desc} ${i+1}/${parcelas}`,
+                valor: valorParcela,
+                tipo: tipo,
+                metodo: metodo,
+                banco: banco,
+                data: dataParcela.toISOString(),
+                categoria: 'Parcelado',
+                texto: texto,
+                parcela: i+1,
+                totalParcelas: parcelas,
+                contaFixa: false
+            });
+        }
+        salvar();
+        atualizar();
+        addMensagem(`Parcelado: ${desc} em ${parcelas}x de R$ ${valorParcela.toFixed(2)}`, 'system');
+        return null;
+    }
+
+    // ===== CATEGORIA AUTOMÁTICA =====
+    const categorias = {
+        'mercado|supermercado|feira|cafe|lanche|padaria|almoço|jantar|ifood|rappi': 'Alimentação',
+        'uber|99|taxi|gasolina|combustivel|onibus|metro|pedagio': 'Transporte',
+        'aluguel|condominio|luz|energia|energia elétrica|agua|internet|iptu': 'Moradia',
+        'cinema|bar|festa|show|netflix|spotify|prime|disney': 'Lazer',
+        'farmacia|medico|hospital|remedio|plano|dentista': 'Saúde',
+        'curso|faculdade|livro|escola|mensalidade': 'Educação',
+        'salario|freelance|pix recebido|rendimento': 'Salário'
+    };
+    let categoria = tipo === 'entrada'? 'Outros' : 'Outras Despesas';
+    Object.keys(categorias).forEach(keys => {
+        const regex = new RegExp(keys, 'i');
+        if (regex.test(texto.toLowerCase())) categoria = categorias[keys];
+    });
+
+    // ===== CONTA FIXA AUTOMÁTICA =====
+    const regexContaFixa = /(aluguel|luz|energia|agua|internet|condominio|netflix|spotify|mensalidade)/i;
+    const contaFixa = regexContaFixa.test(texto.toLowerCase());
+
+    const retorno = {
         id: Date.now(),
         descricao: desc,
         valor: valor,
@@ -208,6 +291,7 @@ const retorno = {
     }
 
     return retorno;
+}
     
     // ===== DESCRIÇÃO LIMPA =====
     let desc = textoLimpo;
