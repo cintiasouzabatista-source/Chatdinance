@@ -125,3 +125,7 @@ nav{flex-shrink:0;display:flex;background:var(--bg2);border-top:1px solid var(--
 .menu-mais button.btn-danger:hover {
     background: rgba(239, 68, 68, 0.1);
 }
+.menu-mais {
+    max-height: 300px;
+    overflow-y: auto;
+}
