@@ -9,6 +9,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="manifest" href="./manifest.json" crossorigin="use-credentials">
     <link rel="stylesheet" href="style.css">
+    <link rel="icon" href="data:,">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -22,15 +23,13 @@
         <div class="pin-icon"><i class="fas fa-lock"></i></div>
         <h2>Digite seu PIN</h2>
         <form id="form-pin" onsubmit="return false;">
-            <div class="pin-inputs">
-                <input type="password" maxlength="1" class="pin-input" inputmode="numeric" autocomplete="one-time-code">
-                <input type="password" maxlength="1" class="pin-input" inputmode="numeric" autocomplete="one-time-code">
-                <input type="password" maxlength="1" class="pin-input" inputmode="numeric" autocomplete="one-time-code">
-                <input type="password" maxlength="1" class="pin-input" inputmode="numeric" autocomplete="one-time-code">
-            </div>
-        </form>
-        <p id="pin-erro" class="hidden"></p>
-        <button onclick="resetarApp()">Esqueceu o PIN?</button>
+          <!-- Troca form por div -->
+<div id="form-pin">
+    <div class="pin-inputs">
+        <input type="password" maxlength="1" class="pin-input" inputmode="numeric" autocomplete="one-time-code">
+        <input type="password" maxlength="1" class="pin-input" inputmode="numeric" autocomplete="one-time-code">
+        <input type="password" maxlength="1" class="pin-input" inputmode="numeric" autocomplete="one-time-code">
+        <input type="password" maxlength="1" class="pin-input" inputmode="numeric" autocomplete="one-time-code">
     </div>
 </div>
 
