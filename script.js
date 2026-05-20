@@ -54,7 +54,24 @@ function setupPinInputs() {
         });
     });
 }
+function enviarMensagem() {
+    const input = document.getElementById('user-input');
+    const texto = input.value.trim();
+    if (!texto) return;
 
+    addMensagem(texto, 'user');
+    input.value = '';
+
+    const transacao = interpretarTexto(texto);
+    if (transacao) {
+        dados.push(transacao);
+        salvar();
+        atualizar();
+        addMensagem(`Lançado: ${transacao.descricao} R$ ${transacao.valor.toFixed(2)}`, 'bot');
+    } else {
+        addMensagem('Não entendi. Tenta: cafe 15 | recebi 500', 'bot');
+    }
+}
 function verificarPin() {
     const inputs = document.querySelectorAll('.pin-input');
     const pin = Array.from(inputs).map(i => i.value).join('');
