@@ -635,6 +635,7 @@ function toggleProjetado() {
 
 // ===== RESET =====
 function resetarApp() {
+    fecharMenuMais(); // fecha o menu antes
     if (confirm('ATENÇÃO: Isso vai apagar TUDO\n\n• Todas as transações\n• Contas e cartões\n• PIN de acesso\n\nTem certeza que deseja resetar o app?')) {
         localStorage.clear();
         location.reload();
