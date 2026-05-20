@@ -171,6 +171,33 @@
         </div>
     </div>
 
+    <div id="modal-graficos" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="grafico-titulo">Análise</h3>
+            <button onclick="fecharModal('modal-graficos')"><i class="fas fa-times"></i></button>
+        </div>
+
+        <div class="grafico-resumo">
+            <p class="grafico-label">Total do período</p>
+            <p class="grafico-total" id="grafico-total">R$ 0,00</p>
+        </div>
+
+        <div class="grafico-tabs">
+            <button onclick="trocarGrafico('categoria')" class="tab-active">Categorias</button>
+            <button onclick="trocarGrafico('cartao')">Cartões</button>
+            <button onclick="trocarGrafico('conta')">Contas</button>
+            <button onclick="trocarGrafico('evolucao')">Evolução</button>
+        </div>
+
+        <div style="height: 250px; margin: 16px 0;">
+            <canvas id="grafico"></canvas>
+        </div>
+
+        <div id="grafico-lista" class="grafico-lista"></div>
+    </div>
+</div>
+    
     <div id="modal-cartao" class="modal">
         <div class="modal-content">
             <div class="modal-head"><h3>Novo Cartão</h3><button onclick="fecharModal('modal-cartao')"><i class="fas fa-times"></i></button></div>
