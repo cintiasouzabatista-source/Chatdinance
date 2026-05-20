@@ -225,3 +225,85 @@ nav{flex-shrink:0;display:flex;background:var(--bg2);border-top:1px solid var(--
 #menu-mais button:hover {
     background: var(--bg-hover);
 }
+.grafico-resumo {
+    padding: 16px;
+    background: var(--bg-hover);
+    border-radius: 12px;
+    margin-bottom: 16px;
+}
+
+.grafico-label {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin: 0 0 4px 0;
+}
+
+.grafico-total {
+    font-size: 28px;
+    font-weight: 700;
+    margin: 0;
+    color: var(--text);
+}
+
+.grafico-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+    overflow-x: auto;
+}
+
+.grafico-tabs button {
+    padding: 8px 16px;
+    border: none;
+    background: var(--bg-hover);
+    color: var(--text-muted);
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.grafico-tabs button.tab-active {
+    background: #2563eb;
+    color: #fff;
+}
+
+.grafico-lista {
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.grafico-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.grafico-item-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.grafico-cor {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+}
+
+.grafico-item-valores {
+    text-align: right;
+}
+
+.grafico-perc {
+    font-size: 12px;
+    color: var(--text-muted);
+    display: block;
+}
+
+.grafico-valor {
+    font-size: 14px;
+    font-weight: 600;
+}
