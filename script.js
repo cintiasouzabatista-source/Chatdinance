@@ -328,12 +328,35 @@ function atualizar() {
         const data = new Date(d.data);
         return data.getMonth() === mesAtual && data.getFullYear() === anoAtual;
     });
+    
     const entradas = dadosMes.filter(d => d.tipo === 'entrada').reduce((s, d) => s + d.valor, 0);
     const saidas = dadosMes.filter(d => d.tipo === 'saida').reduce((s, d) => s + d.valor, 0);
     const cartao = dadosMes.filter(d => d.metodo === 'cartao' && d.tipo === 'saida').reduce((s, d) => s + d.valor, 0);
     const saldo = entradas - saidas;
     const saldoContas = contas.reduce((s, c) => s + c.saldo, 0);
-    const liquido = saldoContas + saldo;
+    let liquido = saldoContas + saldo;
+
+    // ===== PROJEÇÃO =====
+    if (mostrarProjetado) {
+        const hoje = new Date();
+        const diaAtual = hoje.getDate();
+        const ultimoDia = new Date(anoAtual, mesAtual + 1, 0).getDate();
+        
+        // Pega contas fixas futuras do mês
+        const contasFixasPendentes = dados.filter(d => {
+            const data = new Date(d.data);
+            return data.getMonth() === mesAtual 
+                && data.getFullYear() === anoAtual 
+                && data.getDate() > diaAtual
+                && d.contaFixa === true
+                && d.tipo === 'saida';
+        }).reduce((s, d) => s + d.valor, 0);
+        
+        liquido -= contasFixasPendentes;
+        document.getElementById('card-liquido').parentElement.querySelector('p').textContent = 'LÍQUIDO PROJETADO';
+    } else {
+        document.getElementById('card-liquido').parentElement.querySelector('p').textContent = 'LÍQUIDO';
+    }
 
     const fmt = (val) => ocultarValores? 'R$ ••••' : `R$ ${val.toFixed(2)}`;
 
@@ -343,7 +366,6 @@ function atualizar() {
     document.getElementById('card-cartoes').textContent = fmt(cartao);
     document.getElementById('card-liquido').textContent = fmt(liquido);
 }
-
 function toggleVisibility() {
     ocultarValores =!ocultarValores;
     document.getElementById('eye-icon').className = ocultarValores? 'fas fa-eye-slash' : 'fas fa-eye';
@@ -602,8 +624,8 @@ function fecharMenuMais() {
 function toggleProjetado() {
     mostrarProjetado =!mostrarProjetado;
     atualizar();
+    addMensagem(mostrarProjetado? 'Projeção ativada: descontando contas fixas futuras' : 'Projeção desativada', 'system');
 }
-
 // ===== RESET =====
 function resetarApp() {
     fecharMenuMais();
