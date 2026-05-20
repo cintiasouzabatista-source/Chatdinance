@@ -459,7 +459,6 @@ function filtrarExtrato() {
     document.getElementById('total-extrato').textContent = `Total: R$ ${total.toFixed(2)}`;
 }
 
-// ===== GRÁFICOS =====
 function trocarGrafico(tipo) {
     document.querySelectorAll('.grafico-tabs button').forEach(b => b.classList.remove('tab-active'));
     event?.target.classList.add('tab-active');
@@ -469,43 +468,150 @@ function trocarGrafico(tipo) {
         return data.getMonth() === mesAtual && data.getFullYear() === anoAtual && d.tipo === 'saida';
     });
 
-    let labels = [], valores = [];
+    let labels = [], valores = [], titulo = '', total = 0;
+
     if (tipo === 'categoria') {
         const porCat = {};
         dadosMes.forEach(d => porCat[d.categoria] = (porCat[d.categoria] || 0) + d.valor);
-        labels = Object.keys(porCat);
-        valores = Object.values(porCat);
+        const ordenado = Object.entries(porCat).sort((a,b) => b[1] - a[1]);
+        labels = ordenado.map(o => o[0]);
+        valores = ordenado.map(o => o[1]);
+        titulo = 'Gastos por Categoria';
+        total = valores.reduce((s,v) => s+v, 0);
     } else if (tipo === 'cartao') {
         const porCartao = {};
         dadosMes.filter(d => d.metodo === 'cartao').forEach(d => porCartao[d.banco] = (porCartao[d.banco] || 0) + d.valor);
-        labels = Object.keys(porCartao);
-        valores = Object.values(porCartao);
+        const ordenado = Object.entries(porCartao).sort((a,b) => b[1] - a[1]);
+        labels = ordenado.map(o => o[0]);
+        valores = ordenado.map(o => o[1]);
+        titulo = 'Gastos por Cartão';
+        total = valores.reduce((s,v) => s+v, 0);
+    } else if (tipo === 'evolucao') {
+        // Últimos 6 meses
+        const meses = [];
+        for(let i = 5; i >= 0; i--) {
+            const d = new Date(anoAtual, mesAtual - i, 1);
+            meses.push(d);
+        }
+        labels = meses.map(d => d.toLocaleDateString('pt-BR', {month: 'short'}));
+        valores = meses.map(d => {
+            return dados.filter(t => {
+                const dt = new Date(t.data);
+                return dt.getMonth() === d.getMonth() && dt.getFullYear() === d.getFullYear() && t.tipo === 'saida';
+            }).reduce((s,t) => s + t.valor, 0);
+        });
+        titulo = 'Evolução 6 Meses';
+        total = valores[valores.length - 1];
     } else {
         const porConta = {};
         dadosMes.filter(d => d.metodo === 'conta').forEach(d => porConta[d.banco] = (porConta[d.banco] || 0) + d.valor);
-        labels = Object.keys(porConta);
-        valores = Object.values(porConta);
+        const ordenado = Object.entries(porConta).sort((a,b) => b[1] - a[1]);
+        labels = ordenado.map(o => o[0]);
+        valores = ordenado.map(o => o[1]);
+        titulo = 'Gastos por Conta';
+        total = valores.reduce((s,v) => s+v, 0);
     }
+
+    // Atualiza header do gráfico
+    document.getElementById('grafico-titulo').textContent = titulo;
+    document.getElementById('grafico-total').textContent = `R$ ${total.toFixed(2)}`;
 
     if (chartInstance) chartInstance.destroy();
     const ctx = document.getElementById('grafico').getContext('2d');
+
+    const cores = ['#2563eb','#10b981','#f59e0b','#ef4444','#8b5cf6','#ec4899','#06b6d4','#84cc16'];
+
     chartInstance = new Chart(ctx, {
-        type: 'doughnut',
+        type: tipo === 'evolucao'? 'line' : 'bar',
         data: {
             labels: labels,
             datasets: [{
+                label: 'Valor',
                 data: valores,
-                backgroundColor: ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#ec4899']
+                backgroundColor: tipo === 'evolucao'? 'rgba(37, 99, 235, 0.1)' : cores,
+                borderColor: tipo === 'evolucao'? '#2563eb' : cores,
+                borderWidth: tipo === 'evolucao'? 3 : 0,
+                borderRadius: tipo === 'evolucao'? 0 : 8,
+                fill: tipo === 'evolucao',
+                tension: 0.4,
+                pointRadius: tipo === 'evolucao'? 5 : 0,
+                pointBackgroundColor: '#2563eb',
+                pointBorderColor: '#fff',
+                pointBorderWidth: 2,
+                pointHoverRadius: 7
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            plugins: { legend: { position: 'bottom' } }
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: '#1f2937',
+                    titleColor: '#fff',
+                    bodyColor: '#fff',
+                    padding: 12,
+                    cornerRadius: 8,
+                    displayColors: false,
+                    callbacks: {
+                        label: (ctx) => {
+                            const valor = ctx.parsed.y || ctx.parsed;
+                            const perc = total? ((valor/total)*100).toFixed(1) : 0;
+                            return tipo === 'evolucao'? `R$ ${valor.toFixed(2)}` : `R$ ${valor.toFixed(2)} • ${perc}%`;
+                        }
+                    }
+                }
+            },
+            scales: tipo === 'evolucao'? {
+                x: {
+                    grid: { display: false },
+                    ticks: { color: '#6b7280' }
+                },
+                y: {
+                    grid: { color: 'rgba(107, 114, 128, 0.1)' },
+                    ticks: {
+                        color: '#6b7280',
+                        callback: (val) => 'R$ ' + val
+                    }
+                }
+            } : {
+                x: {
+                    grid: { display: false },
+                    ticks: { color: '#6b7280', maxRotation: 0 }
+                },
+                y: {
+                    grid: { color: 'rgba(107, 114, 128, 0.1)' },
+                    ticks: {
+                        color: '#6b7280',
+                        callback: (val) => 'R$ ' + val
+                    }
+                }
+            }
         }
     });
-}
 
+    // Lista abaixo do gráfico estilo MP
+    if (tipo!== 'evolucao') {
+        const listaHtml = labels.map((l, i) => {
+            const perc = ((valores[i]/total)*100).toFixed(1);
+            return `
+                <div class="grafico-item">
+                    <div class="grafico-item-info">
+                        <span class="grafico-cor" style="background: ${cores[i]}"></span>
+                        <span>${l}</span>
+                    </div>
+                    <div class="grafico-item-valores">
+                        <span class="grafico-perc">${perc}%</span>
+                        <span class="grafico-valor">R$ ${valores[i].toFixed(2)}</span>
+                    </div>
+                </div>
+            `;
+        }).join('');
+        document.getElementById('grafico-lista').innerHTML = listaHtml;
+    } else {
+        document.getElementById('grafico-lista').innerHTML = '';
+    }
+}
 // ===== CONTAS/CARTÕES =====
 let tempContas = [];
 let tempCartoes = [];
