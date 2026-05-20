@@ -54,24 +54,12 @@ function setupPinInputs() {
         });
     });
 }
-function enviarMensagem() {
-    const input = document.getElementById('user-input');
-    const texto = input.value.trim();
-    if (!texto) return;
 
-    addMensagem(texto, 'user');
-    input.value = '';
-
-    const transacao = interpretarTexto(texto);
-    if (transacao) {
-        dados.push(transacao);
-        salvar();
-        atualizar();
-        addMensagem(`Lançado: ${transacao.descricao} R$ ${transacao.valor.toFixed(2)}`, 'bot');
-    } else {
-        addMensagem('Não entendi. Tenta: cafe 15 | recebi 500', 'bot');
-    }
-}
+<footer class="chat-footer">
+    <button onclick="iniciarVoz()" class="btn-mic" title="Falar"><i class="fas fa-microphone"></i></button>
+    <input id="user-input" type="text" placeholder="Ex: cafe 15 | recebi 500 | saldo inicial 1000">
+    <button id="btn-enviar"><i class="fas fa-paper-plane"></i></button>
+</footer>
 
 function verificarPin() {
     const inputs = document.querySelectorAll('.pin-input');
