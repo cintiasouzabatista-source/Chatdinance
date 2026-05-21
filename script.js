@@ -882,6 +882,46 @@ function toggleProjetado() {
 
     atualizar();
 }
+
+function toggleMenuMais() {
+    const m = document.getElementById('menuDropdown');
+    if (m.classList.contains('hidden')) {
+        m.classList.remove('hidden');
+        m.style.display = 'flex';
+        // Fecha se clicar fora
+        setTimeout(() => {
+            document.addEventListener('click', fecharMenuFora);
+        }, 10);
+    } else {
+        fecharMenu();
+    }
+}
+
+function fecharMenu() {
+    const m = document.getElementById('menuDropdown');
+    m.classList.add('hidden');
+    m.style.display = 'none';
+    document.removeEventListener('click', fecharMenuFora);
+}
+
+function fecharMenuFora(e) {
+    const m = document.getElementById('menuDropdown');
+    const btn = document.querySelector('[onclick="toggleMenuMais()"]');
+    if (!m.contains(e.target) && !btn.contains(e.target)) {
+        fecharMenu();
+    }
+}
+
+// Fecha menu depois de clicar numa opção
+function abrirModal(modalId) {
+    fecharMenu();
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.style.display = 'flex';
+        if (modalId === 'modal-contas') renderizarListaTemp();
+    }
+}
+
 function replicarContasFixas() {
     const contasFixas = dados.filter(d => d.contaFixa === true);
     const mesesParaFrente = 12; // replica 12 meses pra frente
