@@ -113,26 +113,34 @@
             </button>
         </nav>
 
-        <!-- MENU MAIS -->
-        <div id="menu-mais" class="menu-mais hidden">
-            <button onclick="abrirModalConta(); fecharMenuMais()" class="menu-mais-item">
-                <i class="fas fa-university"></i> Cadastrar Conta
-            </button>
-            <button onclick="abrirModalCartao(); fecharMenuMais()" class="menu-mais-item">
-                <i class="fas fa-credit-card"></i> Cadastrar Cartão
-            </button>
-            <button onclick="toggleProjetado(); fecharMenuMais()" class="menu-mais-item">
-                <i class="fas fa-chart-line"></i> Projeção Líquido
-            </button>
-            <button onclick="resetarTransacoes(); fecharMenuMais()" class="menu-mais-item">
-                <i class="fas fa-broom"></i> Limpar Lançamentos
-            </button>
-            <button onclick="resetarApp(); fecharMenuMais()" class="menu-mais-item text-rose">
-                <i class="fas fa-trash"></i> Resetar App
-            </button>
-        </div>
-    </div>
-
+       <!-- MENU DROPDOWN -->
+<div id="menuDropdown" class="menu-dropdown hidden">
+    <button onclick="abrirModal('modal-contas')" title="Contas & Cartões">
+        <i class="fas fa-university"></i> 
+        <span class="menu-text">Contas & Cartões</span>
+    </button>
+    <button onclick="abrirModal('modal-fixas')" title="Contas Fixas">
+        <i class="fas fa-repeat"></i> 
+        <span class="menu-text">Contas Fixas</span>
+    </button>
+    <button onclick="toggleProjetado()" id="btnProjetado" title="Saldo Projetado">
+        <i class="fas fa-chart-line"></i> 
+        <span class="menu-text">Saldo Projetado</span>
+    </button>
+    <button onclick="abrirModal('modal-importar')" title="Importar extrato">
+        <i class="fas fa-file-import"></i> 
+        <span class="menu-text">Importar extrato</span>
+    </button>
+    <div class="menu-divider"></div>
+    <button onclick="resetarTransacoes()" title="Limpar Transações">
+        <i class="fas fa-broom"></i> 
+        <span class="menu-text">Limpar Transações</span>
+    </button>
+    <button onclick="resetarApp()" class="text-rose" title="Resetar App">
+        <i class="fas fa-trash"></i> 
+        <span class="menu-text">Resetar App</span>
+    </button>
+</div>
     <!-- MODAIS -->
     <div id="modal-extrato" class="modal">
         <div class="modal-content full">
